@@ -23,6 +23,7 @@ import org.apache.iotdb.common.rpc.thrift.TEndPoint;
 import org.apache.iotdb.common.rpc.thrift.TSStatus;
 import org.apache.iotdb.commons.client.IClientManager;
 import org.apache.iotdb.commons.client.exception.ClientManagerException;
+import org.apache.iotdb.commons.concurrent.IoTDBThreadPoolFactory;
 import org.apache.iotdb.commons.service.metric.MetricService;
 import org.apache.iotdb.commons.service.metric.enums.Metric;
 import org.apache.iotdb.commons.service.metric.enums.PerformanceOverviewMetrics;
@@ -81,6 +82,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -115,6 +117,8 @@ public class IoTConsensusServerImpl {
 
   private final String consensusGroupId;
 
+  private ExecutorService executorService;
+
   public IoTConsensusServerImpl(
       String storageDir,
       Peer thisNode,
@@ -143,6 +147,9 @@ public class IoTConsensusServerImpl {
     this.searchIndex = new AtomicLong(currentSearchIndex);
     this.consensusGroupId = thisNode.getGroupId().toString();
     this.metrics = new IoTConsensusServerMetrics(this);
+    this.executorService =
+        IoTDBThreadPoolFactory.newFixedThreadPool(
+            Runtime.getRuntime().availableProcessors(), "Serialization");
   }
 
   public IStateMachine getStateMachine() {
@@ -158,6 +165,16 @@ public class IoTConsensusServerImpl {
   public void stop() {
     logDispatcher.stop();
     stateMachine.stop();
+    executorService.shutdownNow();
+    int timeout = 10;
+    try {
+      if (!executorService.awaitTermination(timeout, TimeUnit.SECONDS)) {
+        logger.error("Unable to shutdown serialization service after {} seconds", timeout);
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      logger.error("Unexpected Interruption when closing serialization service ");
+    }
     MetricService.getInstance().removeMetricSet(this.metrics);
   }
 

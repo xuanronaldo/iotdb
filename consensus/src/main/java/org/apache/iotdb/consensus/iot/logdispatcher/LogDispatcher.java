@@ -158,24 +158,27 @@ public class LogDispatcher {
   public void offer(IndexedConsensusRequest request) {
     // we don't need to serialize and offer request when replicaNum is 1.
     if (!threads.isEmpty()) {
-      request.buildSerializedRequests();
-      synchronized (this) {
-        threads.forEach(
-            thread -> {
-              logger.debug(
-                  "{}->{}: Push a log to the queue, where the queue length is {}",
-                  impl.getThisNode().getGroupId(),
-                  thread.getPeer().getEndpoint().getIp(),
-                  thread.getPendingEntriesSize());
-              if (!thread.offer(request)) {
-                logger.debug(
-                    "{}: Log queue of {} is full, ignore the log to this node, searchIndex: {}",
-                    impl.getThisNode().getGroupId(),
-                    thread.getPeer(),
-                    request.getSearchIndex());
-              }
-            });
-      }
+      executorService.submit(
+          () -> {
+            request.buildSerializedRequests();
+            synchronized (this) {
+              threads.forEach(
+                  thread -> {
+                    logger.debug(
+                        "{}->{}: Push a log to the queue, where the queue length is {}",
+                        impl.getThisNode().getGroupId(),
+                        thread.getPeer().getEndpoint().getIp(),
+                        thread.getPendingEntriesSize());
+                    if (!thread.offer(request)) {
+                      logger.debug(
+                          "{}: Log queue of {} is full, ignore the log to this node, searchIndex: {}",
+                          impl.getThisNode().getGroupId(),
+                          thread.getPeer(),
+                          request.getSearchIndex());
+                    }
+                  });
+            }
+          });
     }
   }
 
@@ -252,6 +255,9 @@ public class LogDispatcher {
 
     /** try to offer a request into queue with memory control. */
     public boolean offer(IndexedConsensusRequest indexedConsensusRequest) {
+      if (indexedConsensusRequest.getSearchIndex() - getCurrentSyncIndex() > 10000) {
+        return false;
+      }
       if (!iotConsensusMemoryManager.reserve(indexedConsensusRequest.getSerializedSize(), true)) {
         return false;
       }
