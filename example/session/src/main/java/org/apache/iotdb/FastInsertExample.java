@@ -39,7 +39,7 @@ public class FastInsertExample {
   private static final String ROOT_SG1_D1_S4 = "root.sg1.d1.s4";
   private static final String ROOT_SG1_D1_S5 = "root.sg1.d1.s5";
   private static final String ROOT_SG1_D1 = "root.sg1.d1";
-  private static final String LOCAL_HOST = "192.168.130.16";
+  private static final String LOCAL_HOST = "127.0.0.1";
 
   public static void main(String[] args)
       throws IoTDBConnectionException, StatementExecutionException {

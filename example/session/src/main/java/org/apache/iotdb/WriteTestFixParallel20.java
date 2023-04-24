@@ -34,11 +34,11 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class WriteTestFixParallel {
+public class WriteTestFixParallel20 {
 
   private static SessionPool sessionPool;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WriteTestFixParallel.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WriteTestFixParallel20.class);
 
   private static int THREAD_NUMBER = 300;
 

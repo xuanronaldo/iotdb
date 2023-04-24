@@ -39,6 +39,7 @@ import java.util.Map;
 public class FastInsertRowsNode extends InsertRowsNode {
   public FastInsertRowsNode(PlanNodeId id) {
     super(id);
+    setAligned(true);
   }
 
   public FastInsertRowsNode(
@@ -46,6 +47,7 @@ public class FastInsertRowsNode extends InsertRowsNode {
       List<Integer> insertRowNodeIndexList,
       List<InsertRowNode> fastInsertRowNodeList) {
     super(id, insertRowNodeIndexList, fastInsertRowNodeList);
+    setAligned(true);
   }
 
   public boolean hasFailedMeasurements() {

@@ -40,11 +40,13 @@ public class FastInsertRowNode extends InsertRowNode {
 
   public FastInsertRowNode(PlanNodeId id) {
     super(id);
+    setAligned(true);
   }
 
   public FastInsertRowNode(PlanNodeId id, PartialPath devicePath, long time, ByteBuffer values) {
     super(id, devicePath, true, null, null, time, null, false);
     this.rawValues = values;
+    setAligned(true);
   }
 
   @Override
@@ -75,11 +77,12 @@ public class FastInsertRowNode extends InsertRowNode {
   void subSerialize(DataOutputStream stream) throws IOException {
     ReadWriteIOUtils.write(getTime(), stream);
     ReadWriteIOUtils.write(devicePath.getFullPath(), stream);
-    serializeValues(stream);
     // 如果有值，则将其序列化下去，为了给共识层用，共识层的 follower 收到的 insertNode 需要携带所有信息
     ReadWriteIOUtils.write(measurementSchemas != null, stream);
     if (measurementSchemas != null) {
       serializeMeasurementsAndValues(stream);
+    } else {
+      serializeValues(stream);
     }
   }
 
@@ -108,10 +111,11 @@ public class FastInsertRowNode extends InsertRowNode {
     } catch (IllegalPathException e) {
       throw new IllegalArgumentException("Cannot deserialize InsertRowNode", e);
     }
-    deserializeValues(byteBuffer);
     boolean hasSchema = ReadWriteIOUtils.readBool(byteBuffer);
     if (hasSchema) {
       deserializeMeasurementsAndValues(byteBuffer);
+    } else {
+      deserializeValues(byteBuffer);
     }
   }
 
