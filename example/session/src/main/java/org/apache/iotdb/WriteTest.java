@@ -143,6 +143,7 @@ public class WriteTest {
   }
 
   public static void main(String[] args) throws InterruptedException {
+
     // Choose the SessionPool you going to use
     constructRedirectSessionPool();
 
@@ -204,7 +205,6 @@ public class WriteTest {
       throws StatementExecutionException, IoTDBConnectionException {
     List<String> deviceIds = new ArrayList<>();
     List<Long> times = new ArrayList<>();
-    List<List<String>> measurementsList = new ArrayList<>();
     List<List<TSDataType>> typesList = new ArrayList<>();
     List<List<Object>> valuesList = new ArrayList<>();
     int deviceCount = 0;
@@ -217,12 +217,11 @@ public class WriteTest {
         values.add(floatData[(int) ((i + j + timestamp) % floatData.length)]);
       }
       valuesList.add(values);
-      measurementsList.add(measurements);
       typesList.add(types);
       deviceCount++;
     }
 
-    sessionPool.insertAlignedRecords(deviceIds, times, measurementsList, typesList, valuesList);
+    sessionPool.fastInsertRecords(deviceIds, times, typesList, valuesList);
     return deviceCount;
   }
 }

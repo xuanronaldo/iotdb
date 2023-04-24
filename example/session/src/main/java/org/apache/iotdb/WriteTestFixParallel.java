@@ -180,19 +180,19 @@ public class WriteTestFixParallel {
 
     long startTime1 = System.nanoTime();
     new Thread(
-        () -> {
-          while (true) {
-            try {
-              TimeUnit.MINUTES.sleep(1);
-            } catch (InterruptedException e) {
-              throw new RuntimeException(e);
-            }
-            long currentTime = System.nanoTime();
-            LOGGER.info(
-                "write rate: {} lines/minute",
-                totalRowNumber.get() / ((currentTime - startTime1) / 60_000_000_000L));
-          }
-        })
+            () -> {
+              while (true) {
+                try {
+                  TimeUnit.MINUTES.sleep(1);
+                } catch (InterruptedException e) {
+                  throw new RuntimeException(e);
+                }
+                long currentTime = System.nanoTime();
+                LOGGER.info(
+                    "write rate: {} lines/minute",
+                    totalRowNumber.get() / ((currentTime - startTime1) / 60_000_000_000L));
+              }
+            })
         .start();
   }
 

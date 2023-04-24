@@ -84,6 +84,7 @@ import org.apache.iotdb.db.mpp.plan.planner.plan.node.source.SeriesScanNode;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.source.ShowQueriesNode;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.DeleteDataNode;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.FastInsertRowNode;
+import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.FastInsertRowsNode;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.InsertMultiTabletsNode;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.InsertRowNode;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.InsertRowsNode;
@@ -169,8 +170,8 @@ public enum PlanNodeType {
   IDENTITY_SINK((short) 70),
   SHUFFLE_SINK((short) 71),
   BATCH_ACTIVATE_TEMPLATE((short) 72),
-
   FAST_INSERT_ROW((short) 73),
+  FAST_INSERT_ROWS((short) 74),
   ;
 
   public static final int BYTES = Short.BYTES;
@@ -366,6 +367,8 @@ public enum PlanNodeType {
         return BatchActivateTemplateNode.deserialize(buffer);
       case 73:
         return FastInsertRowNode.deserialize(buffer);
+      case 74:
+        return FastInsertRowsNode.deserialize(buffer);
       default:
         throw new IllegalArgumentException("Invalid node type: " + nodeType);
     }

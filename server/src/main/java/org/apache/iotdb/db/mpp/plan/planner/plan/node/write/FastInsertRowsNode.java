@@ -23,9 +23,14 @@ import org.apache.iotdb.common.rpc.thrift.TRegionReplicaSet;
 import org.apache.iotdb.db.exception.query.QueryProcessException;
 import org.apache.iotdb.db.mpp.plan.analyze.Analysis;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.PlanNodeId;
+import org.apache.iotdb.db.mpp.plan.planner.plan.node.PlanNodeType;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.WritePlanNode;
 import org.apache.iotdb.db.utils.TimePartitionUtils;
+import org.apache.iotdb.tsfile.utils.ReadWriteIOUtils;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +56,46 @@ public class FastInsertRowsNode extends InsertRowsNode {
     for (int i = 0; i < getInsertRowNodeList().size(); i++) {
       ((FastInsertRowNode) getInsertRowNodeList().get(i)).fillValues();
     }
+  }
+
+  @Override
+  protected void serializeAttributes(DataOutputStream stream) throws IOException {
+    PlanNodeType.FAST_INSERT_ROWS.serialize(stream);
+
+    ReadWriteIOUtils.write(insertRowNodeList.size(), stream);
+
+    for (InsertRowNode node : insertRowNodeList) {
+      node.subSerialize(stream);
+    }
+    for (Integer index : insertRowNodeIndexList) {
+      ReadWriteIOUtils.write(index, stream);
+    }
+  }
+
+  public static FastInsertRowsNode deserialize(ByteBuffer byteBuffer) {
+    PlanNodeId planNodeId;
+    List<InsertRowNode> insertRowNodeList = new ArrayList<>();
+    List<Integer> insertRowNodeIndex = new ArrayList<>();
+
+    int size = byteBuffer.getInt();
+    for (int i = 0; i < size; i++) {
+      FastInsertRowNode insertRowNode = new FastInsertRowNode(new PlanNodeId(""));
+      insertRowNode.subDeserialize(byteBuffer);
+      insertRowNodeList.add(insertRowNode);
+    }
+    for (int i = 0; i < size; i++) {
+      insertRowNodeIndex.add(byteBuffer.getInt());
+    }
+
+    planNodeId = PlanNodeId.deserialize(byteBuffer);
+    for (InsertRowNode insertRowNode : insertRowNodeList) {
+      insertRowNode.setPlanNodeId(planNodeId);
+    }
+
+    FastInsertRowsNode fastInsertRowsNode = new FastInsertRowsNode(planNodeId);
+    fastInsertRowsNode.setInsertRowNodeList(insertRowNodeList);
+    fastInsertRowsNode.setInsertRowNodeIndexList(insertRowNodeIndex);
+    return fastInsertRowsNode;
   }
 
   @Override

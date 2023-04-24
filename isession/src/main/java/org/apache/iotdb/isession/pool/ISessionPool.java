@@ -94,6 +94,13 @@ public interface ISessionPool {
       List<List<Object>> valuesList)
       throws IoTDBConnectionException, StatementExecutionException;
 
+  void fastInsertRecords(
+      List<String> multiSeriesIds,
+      List<Long> times,
+      List<List<TSDataType>> typesList,
+      List<List<Object>> valuesList)
+      throws IoTDBConnectionException, StatementExecutionException;
+
   @Deprecated
   void insertOneDeviceRecords(
       String deviceId,
