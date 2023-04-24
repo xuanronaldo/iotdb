@@ -56,15 +56,17 @@ public class WriteTestFixParallel {
 
   private static Random r;
 
+  private static float[] floatData = new float[10000];
+
   /** Build a custom SessionPool for this example */
 
   /** Build a redirect-able SessionPool for this example */
   private static void constructRedirectSessionPool() {
     List<String> nodeUrls = new ArrayList<>();
     //    nodeUrls.add("127.0.0.1:6667");
-    nodeUrls.add("10.24.58.58:6667");
-    nodeUrls.add("10.24.58.67:6667");
-    nodeUrls.add("10.24.58.69:6667");
+    nodeUrls.add("192.168.130.16:6667");
+    nodeUrls.add("192.168.130.17:6667");
+    nodeUrls.add("192.168.130.18:6667");
     sessionPool =
         new SessionPool.Builder()
             .nodeUrls(nodeUrls)
@@ -155,6 +157,11 @@ public class WriteTestFixParallel {
       types.add(TSDataType.FLOAT);
     }
 
+    r = new Random();
+    for (int i = 0; i < floatData.length; i++) {
+      floatData[i] = r.nextFloat();
+    }
+
     Thread[] threads = new Thread[THREAD_NUMBER];
 
     SyncWriteSignal signal = new SyncWriteSignal(THREAD_NUMBER);
@@ -201,7 +208,6 @@ public class WriteTestFixParallel {
       throws StatementExecutionException, IoTDBConnectionException {
     List<String> deviceIds = new ArrayList<>();
     List<Long> times = new ArrayList<>();
-    List<List<String>> measurementsList = new ArrayList<>();
     List<List<TSDataType>> typesList = new ArrayList<>();
     List<List<Object>> valuesList = new ArrayList<>();
     int deviceCount = 0;
@@ -211,15 +217,14 @@ public class WriteTestFixParallel {
       times.add(timestamp);
       List<Object> values = new ArrayList<>();
       for (int i = 0; i < SENSOR_NUMBER; i++) {
-        values.add(r.nextFloat());
+        values.add(floatData[(int) ((i + j + timestamp) % floatData.length)]);
       }
       valuesList.add(values);
-      measurementsList.add(measurements);
       typesList.add(types);
       deviceCount++;
     }
 
-    sessionPool.insertAlignedRecords(deviceIds, times, measurementsList, typesList, valuesList);
+    sessionPool.fastInsertRecords(deviceIds, times, typesList, valuesList);
     return deviceCount;
   }
 }

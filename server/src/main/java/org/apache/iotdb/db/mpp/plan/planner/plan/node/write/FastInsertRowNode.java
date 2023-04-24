@@ -65,6 +65,7 @@ public class FastInsertRowNode extends InsertRowNode {
   }
 
   // TODO: (FASTWRITE) (侯昊男) 增加 byteBuffer 字段后，相应的序列化反序列化方法要改一下
+  // 这个方法貌似没有被用到
   void subSerialize(ByteBuffer buffer) {
     ReadWriteIOUtils.write(getTime(), buffer);
     ReadWriteIOUtils.write(devicePath.getFullPath(), buffer);
@@ -75,6 +76,11 @@ public class FastInsertRowNode extends InsertRowNode {
     ReadWriteIOUtils.write(getTime(), stream);
     ReadWriteIOUtils.write(devicePath.getFullPath(), stream);
     serializeValues(stream);
+    // 如果有值，则将其序列化下去，为了给共识层用，共识层的 follower 收到的 insertNode 需要携带所有信息
+    ReadWriteIOUtils.write(measurementSchemas != null, stream);
+    if (measurementSchemas != null) {
+      serializeMeasurementsAndValues(stream);
+    }
   }
 
   /** Serialize measurements and values, ignoring failed time series */
@@ -103,6 +109,10 @@ public class FastInsertRowNode extends InsertRowNode {
       throw new IllegalArgumentException("Cannot deserialize InsertRowNode", e);
     }
     deserializeValues(byteBuffer);
+    boolean hasSchema = ReadWriteIOUtils.readBool(byteBuffer);
+    if (hasSchema) {
+      deserializeMeasurementsAndValues(byteBuffer);
+    }
   }
 
   void deserializeValues(ByteBuffer byteBuffer) {
