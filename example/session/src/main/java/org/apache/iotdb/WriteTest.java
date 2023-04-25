@@ -88,13 +88,11 @@ public class WriteTest {
     }
 
     protected void syncCountDownBeforeInsert() {
-      if (needResetLatch) {
-        synchronized (this) {
-          if (needResetLatch) {
-            latch = new CountDownLatch(this.count);
-            needResetLatch = false;
-            currentTimestamp = System.currentTimeMillis();
-          }
+      synchronized (this) {
+        if (needResetLatch) {
+          latch = new CountDownLatch(this.count);
+          needResetLatch = false;
+          currentTimestamp = System.currentTimeMillis();
         }
       }
     }

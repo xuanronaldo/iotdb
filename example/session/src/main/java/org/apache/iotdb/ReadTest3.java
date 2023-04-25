@@ -32,21 +32,26 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
-public class ReadTest2 {
+public class ReadTest3 {
 
   private static SessionPool sessionPool;
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ReadTest2.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ReadTest3.class);
 
-  private static int THREAD_NUMBER = 1;
+  private static int THREAD_NUMBER = 100;
 
   private static int DEVICE_NUMBER = 20000;
 
   private static int READ_LOOP = 10000000;
 
   private static long LOOP_INTERVAL_IN_NS = 3_000_000_000L;
-
   private static Random r;
+  private static SyncReadSignal lastQuerySignal =
+      new SyncReadSignal(THREAD_NUMBER, "Last Value Query");
+  private static SyncReadSignal rawQuerySignal =
+      new SyncReadSignal(THREAD_NUMBER, "Raw Value Query");
+  private static SyncReadSignal avgQuerySignal =
+      new SyncReadSignal(THREAD_NUMBER, "AVG Query GROUP BY 5min");
 
   /** Build a custom SessionPool for this example */
 
@@ -62,7 +67,6 @@ public class ReadTest2 {
             .nodeUrls(nodeUrls)
             .user("root")
             .password("root")
-            .timeOut(180000)
             .maxSize(500)
             .build();
     sessionPool.setFetchSize(10000);
@@ -82,22 +86,20 @@ public class ReadTest2 {
     }
 
     protected void syncCountDownBeforeRead() {
-      if (needResetLatch) {
-        synchronized (this) {
-          if (needResetLatch) {
-            latch = new CountDownLatch(this.count);
-            needResetLatch = false;
-            totalCost = 0L;
-            currentTimestamp = System.nanoTime();
-          }
+      synchronized (this) {
+        if (needResetLatch) {
+          latch = new CountDownLatch(this.count);
+          needResetLatch = false;
+          totalCost = 0L;
+          currentTimestamp = System.nanoTime();
         }
       }
     }
 
     protected void finishReadAndWait(long cost, int loopIndex) throws InterruptedException {
       CountDownLatch currentLatch = latch;
-      totalCost += cost;
       synchronized (this) {
+        totalCost += cost;
         currentLatch.countDown();
         if (currentLatch.getCount() == 0) {
           needResetLatch = true;
@@ -126,8 +128,7 @@ public class ReadTest2 {
     r = new Random();
 
     // Run last query
-    SyncReadSignal lastQuerySignal =
-        new SyncReadSignal(THREAD_NUMBER, "Last Value Query with 1000w");
+
     Thread[] lastReadThreads = new Thread[THREAD_NUMBER];
     for (int i = 0; i < THREAD_NUMBER; i++) {
       lastReadThreads[i] =
@@ -138,10 +139,53 @@ public class ReadTest2 {
                     throws IoTDBConnectionException, StatementExecutionException {
                   queryLastValue();
                 }
-              });
+              },
+              "lastValueQuery-" + i);
     }
     for (Thread thread : lastReadThreads) {
       thread.start();
+    }
+
+    // Run raw query
+
+    Thread[] rawReadThreads = new Thread[THREAD_NUMBER];
+    for (int i = 0; i < THREAD_NUMBER; i++) {
+      rawReadThreads[i] =
+          new Thread(
+              new ReaderThread(rawQuerySignal) {
+                @Override
+                protected void executeQuery()
+                    throws IoTDBConnectionException, StatementExecutionException {
+                  queryRawValue();
+                }
+              },
+              "rawValueQuery-" + i);
+    }
+    for (Thread thread : rawReadThreads) {
+      thread.start();
+    }
+
+    // Run avg query
+
+    Thread[] avgReadThreads = new Thread[THREAD_NUMBER];
+    for (int i = 0; i < THREAD_NUMBER; i++) {
+      avgReadThreads[i] =
+          new Thread(
+              new ReaderThread(avgQuerySignal) {
+                @Override
+                protected void executeQuery()
+                    throws IoTDBConnectionException, StatementExecutionException {
+                  queryAvgValueGroupBy5Min();
+                }
+              },
+              "avgValueQuery-" + i);
+    }
+    for (Thread thread : avgReadThreads) {
+      thread.start();
+    }
+
+    for (Thread thread : avgReadThreads) {
+      thread.join();
     }
   }
 
@@ -179,8 +223,23 @@ public class ReadTest2 {
 
   private static void queryLastValue()
       throws IoTDBConnectionException, StatementExecutionException {
-    int device = r.nextInt(DEVICE_NUMBER);
-    String sql = "select last(*) from root.test.**";
+    int device = r.nextInt(100);
+    String sql = "select last(s_1) from root.test.g_0.d_" + device;
+    executeQuery(sql);
+  }
+
+  private static void queryRawValue() throws IoTDBConnectionException, StatementExecutionException {
+    int device = r.nextInt(100);
+    String sql = String.format("select s_1 from root.test.g_0.d_%s limit 1 offset 10", device);
+    executeQuery(sql);
+  }
+
+  private static void queryAvgValueGroupBy5Min()
+      throws IoTDBConnectionException, StatementExecutionException {
+    int device = r.nextInt(100);
+    String sql =
+        String.format(
+            "select avg(s_1) from root.test.g_0.d_%s GROUP BY ([now()-1d, now()), 5m)", device);
     executeQuery(sql);
   }
 

@@ -321,7 +321,6 @@ public class ClusterSchemaFetcher implements ISchemaFetcher {
     // The schema cache R/W and fetch operation must be locked together thus the cache clean
     // operation executed by delete timeseries will be effective.
     schemaCache.takeReadLock();
-    templateSchemaCache.takeReadLock();
     try {
       List<ISchemaComputationWithAutoCreation> templateTimeSeriesRequestList = new ArrayList<>();
       List<Pair<Template, PartialPath>> templateSetInfoList = new ArrayList<>();
@@ -349,7 +348,6 @@ public class ClusterSchemaFetcher implements ISchemaFetcher {
       }
     } finally {
       schemaCache.releaseReadLock();
-      templateSchemaCache.releaseReadLock();
     }
   }
 
@@ -357,7 +355,6 @@ public class ClusterSchemaFetcher implements ISchemaFetcher {
   public void fetchAndComputeSchemaWithAutoCreateForFastWrite(
       ISchemaComputationWithAutoCreation schemaComputationWithAutoCreation) {
     schemaCache.takeReadLock();
-    templateSchemaCache.takeReadLock();
     try {
 
       Pair<Template, PartialPath> templateSetInfo =
@@ -389,7 +386,6 @@ public class ClusterSchemaFetcher implements ISchemaFetcher {
       }
     } finally {
       schemaCache.releaseReadLock();
-      templateSchemaCache.releaseReadLock();
     }
   }
 

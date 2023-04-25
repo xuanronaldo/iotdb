@@ -23,7 +23,6 @@ import org.apache.iotdb.isession.pool.SessionDataSetWrapper;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.pool.SessionPool;
-import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ReadTest {
 
@@ -40,23 +38,20 @@ public class ReadTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ReadTest.class);
 
-  private static int THREAD_NUMBER = 100;
+  private static int THREAD_NUMBER = 300;
 
   private static int DEVICE_NUMBER = 20000;
-
-  private static int SENSOR_NUMBER = 500;
 
   private static int READ_LOOP = 10000000;
 
   private static long LOOP_INTERVAL_IN_NS = 3_000_000_000L;
-
-  private static List<String> measurements;
-
-  private static List<TSDataType> types;
-
-  private static AtomicInteger totalRowNumber = new AtomicInteger();
-
   private static Random r;
+  private static SyncReadSignal lastQuerySignal =
+      new SyncReadSignal(THREAD_NUMBER, "Last Value Query");
+  private static SyncReadSignal rawQuerySignal =
+      new SyncReadSignal(THREAD_NUMBER, "Raw Value Query");
+  private static SyncReadSignal avgQuerySignal =
+      new SyncReadSignal(THREAD_NUMBER, "AVG Query GROUP BY 5min");
 
   /** Build a custom SessionPool for this example */
 
@@ -94,6 +89,7 @@ public class ReadTest {
       if (needResetLatch) {
         synchronized (this) {
           if (needResetLatch) {
+            LOGGER.info("[{}] RESET SIGNAL", queryName);
             latch = new CountDownLatch(this.count);
             needResetLatch = false;
             totalCost = 0L;
@@ -135,7 +131,7 @@ public class ReadTest {
     r = new Random();
 
     // Run last query
-    SyncReadSignal lastQuerySignal = new SyncReadSignal(THREAD_NUMBER, "Last Value Query");
+
     Thread[] lastReadThreads = new Thread[THREAD_NUMBER];
     for (int i = 0; i < THREAD_NUMBER; i++) {
       lastReadThreads[i] =
@@ -146,14 +142,15 @@ public class ReadTest {
                     throws IoTDBConnectionException, StatementExecutionException {
                   queryLastValue();
                 }
-              });
+              },
+              "lastValueQuery-" + i);
     }
     for (Thread thread : lastReadThreads) {
       thread.start();
     }
 
     // Run raw query
-    SyncReadSignal rawQuerySignal = new SyncReadSignal(THREAD_NUMBER, "Raw Value Query");
+
     Thread[] rawReadThreads = new Thread[THREAD_NUMBER];
     for (int i = 0; i < THREAD_NUMBER; i++) {
       rawReadThreads[i] =
@@ -164,14 +161,15 @@ public class ReadTest {
                     throws IoTDBConnectionException, StatementExecutionException {
                   queryRawValue();
                 }
-              });
+              },
+              "rawValueQuery-" + i);
     }
     for (Thread thread : rawReadThreads) {
       thread.start();
     }
 
     // Run avg query
-    SyncReadSignal avgQuerySignal = new SyncReadSignal(THREAD_NUMBER, "AVG Query GROUP BY 5min");
+
     Thread[] avgReadThreads = new Thread[THREAD_NUMBER];
     for (int i = 0; i < THREAD_NUMBER; i++) {
       avgReadThreads[i] =
@@ -182,7 +180,8 @@ public class ReadTest {
                     throws IoTDBConnectionException, StatementExecutionException {
                   queryAvgValueGroupBy5Min();
                 }
-              });
+              },
+              "avgValueQuery-" + i);
     }
     for (Thread thread : avgReadThreads) {
       thread.start();
