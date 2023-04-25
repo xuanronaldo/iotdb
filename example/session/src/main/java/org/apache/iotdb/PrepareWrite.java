@@ -21,9 +21,9 @@ package org.apache.iotdb;
 
 public class PrepareWrite {
   public static void main(String args[]) {
-    StringBuilder s = new StringBuilder("create schema template t1 (s0 FLOAT encoding=RLE");
+    StringBuilder s = new StringBuilder("create schema template t1 aligned (s0 FLOAT encoding=RLE");
     for (int i = 1; i < 500; i++) {
-      s.append(", s").append(i).append(" FLOAT encoding=RLE");
+      s.append(", s_").append(i).append(" FLOAT encoding=RLE");
     }
     s.append(")");
     System.out.println(s);
