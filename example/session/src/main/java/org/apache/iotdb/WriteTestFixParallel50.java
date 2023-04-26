@@ -64,9 +64,12 @@ public class WriteTestFixParallel50 {
   private static void constructRedirectSessionPool() {
     List<String> nodeUrls = new ArrayList<>();
     //    nodeUrls.add("127.0.0.1:6667");
-    nodeUrls.add("192.168.130.16:6667");
-    nodeUrls.add("192.168.130.17:6667");
-    nodeUrls.add("192.168.130.18:6667");
+    //    nodeUrls.add("192.168.130.16:6667");
+    //    nodeUrls.add("192.168.130.17:6667");
+    //    nodeUrls.add("192.168.130.18:6667");
+    nodeUrls.add("10.24.58.58:6667");
+    nodeUrls.add("10.24.58.67:6667");
+    nodeUrls.add("10.24.58.69:6667");
     sessionPool =
         new SessionPool.Builder()
             .nodeUrls(nodeUrls)
