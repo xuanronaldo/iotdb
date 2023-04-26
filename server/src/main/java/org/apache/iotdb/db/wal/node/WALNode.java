@@ -674,22 +674,16 @@ public class WALNode implements IWALNode {
 
     @Override
     public void waitForNextReady() throws InterruptedException {
-      boolean walFileRolled = false;
       while (!hasNext()) {
-        if (!walFileRolled) {
-          boolean timeout =
-              !buffer.waitForFlush(WAIT_FOR_NEXT_WAL_ENTRY_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
-          if (timeout) {
-            logger.info(
-                "timeout when waiting for next WAL entry ready, execute rollWALFile. Current search index in wal buffer is {}, and next target index is {}",
-                buffer.getCurrentSearchIndex(),
-                nextSearchIndex);
-            rollWALFile();
-            walFileRolled = true;
-          }
-        } else {
-          buffer.waitForFlush();
+        boolean timeout =
+            !buffer.waitForFlush(WAIT_FOR_NEXT_WAL_ENTRY_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        if (timeout) {
+          logger.info(
+              "timeout when waiting for next WAL entry ready. Current search index in wal buffer is {}, and next target index is {}",
+              buffer.getCurrentSearchIndex(),
+              nextSearchIndex);
         }
+        rollWALFile();
       }
     }
 
