@@ -668,6 +668,7 @@ public class WALNode implements IWALNode {
       }
 
       IndexedConsensusRequest request = itr.next();
+      logger.info("Read PlanNode-{} from wal node-{}.", request.getSearchIndex(), identifier);
       nextSearchIndex = request.getSearchIndex() + 1;
       return request;
     }
@@ -700,13 +701,11 @@ public class WALNode implements IWALNode {
 
     @Override
     public void skipTo(long targetIndex) {
-      if (targetIndex < nextSearchIndex) {
-        logger.warn(
-            "Skip from {} to {}, it's a dangerous operation because insert plan {} may have been lost.",
-            nextSearchIndex,
-            targetIndex,
-            targetIndex);
-      }
+      logger.info(
+          "Skip from {} to {}, it's a dangerous operation because insert plan {} may have been lost.",
+          nextSearchIndex,
+          targetIndex,
+          targetIndex);
       reset();
       nextSearchIndex = targetIndex;
     }
