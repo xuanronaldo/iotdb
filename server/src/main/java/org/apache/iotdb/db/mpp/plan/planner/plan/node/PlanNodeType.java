@@ -368,13 +368,11 @@ public enum PlanNodeType {
       case 72:
         return BatchActivateTemplateNode.deserialize(buffer);
       case 73:
-<<<<<<< HEAD
         return CreateLogicalViewNode.deserialize(buffer);
-=======
-        return FastInsertRowNode.deserialize(buffer);
       case 74:
+        return FastInsertRowNode.deserialize(buffer);
+      case 75:
         return FastInsertRowsNode.deserialize(buffer);
->>>>>>> fast_write_test_with_guoneng
       default:
         throw new IllegalArgumentException("Invalid node type: " + nodeType);
     }
