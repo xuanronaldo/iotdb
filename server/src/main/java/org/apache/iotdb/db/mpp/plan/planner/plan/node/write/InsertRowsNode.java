@@ -57,10 +57,10 @@ public class InsertRowsNode extends InsertNode implements BatchInsertNode {
    * InsertRowsNode_2's insertRowNodeList = {InsertRowNode_1, * InsertRowNode_2} then
    * InsertRowsNode_2's insertRowNodeIndexList= {1, 2} respectively;
    */
-  private List<Integer> insertRowNodeIndexList;
+  protected List<Integer> insertRowNodeIndexList;
 
   /** the InsertRowsNode list */
-  private List<InsertRowNode> insertRowNodeList;
+  protected List<InsertRowNode> insertRowNodeList;
 
   public InsertRowsNode(PlanNodeId id) {
     super(id);

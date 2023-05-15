@@ -129,6 +129,9 @@ public class WALNode implements IWALNode {
 
   @Override
   public WALFlushListener log(long memTableId, InsertRowNode insertRowNode) {
+    if (fromLeader(insertRowNode.getSearchIndex())) {
+      return new WALFlushListener(false);
+    }
     WALEntry walEntry = new WALInfoEntry(memTableId, insertRowNode);
     return log(walEntry);
   }
@@ -136,14 +139,24 @@ public class WALNode implements IWALNode {
   @Override
   public WALFlushListener log(
       long memTableId, InsertTabletNode insertTabletNode, int start, int end) {
+    if (fromLeader(insertTabletNode.getSearchIndex())) {
+      return new WALFlushListener(false);
+    }
     WALEntry walEntry = new WALInfoEntry(memTableId, insertTabletNode, start, end);
     return log(walEntry);
   }
 
   @Override
   public WALFlushListener log(long memTableId, DeleteDataNode deleteDataNode) {
+    if (fromLeader(deleteDataNode.getSearchIndex())) {
+      return new WALFlushListener(false);
+    }
     WALEntry walEntry = new WALInfoEntry(memTableId, deleteDataNode);
     return log(walEntry);
+  }
+
+  private boolean fromLeader(long searchIndex) {
+    return searchIndex == DEFAULT_SEARCH_INDEX;
   }
 
   private WALFlushListener log(WALEntry walEntry) {
@@ -655,28 +668,23 @@ public class WALNode implements IWALNode {
       }
 
       IndexedConsensusRequest request = itr.next();
+      logger.info("Read PlanNode-{} from wal node-{}.", request.getSearchIndex(), identifier);
       nextSearchIndex = request.getSearchIndex() + 1;
       return request;
     }
 
     @Override
     public void waitForNextReady() throws InterruptedException {
-      boolean walFileRolled = false;
       while (!hasNext()) {
-        if (!walFileRolled) {
-          boolean timeout =
-              !buffer.waitForFlush(WAIT_FOR_NEXT_WAL_ENTRY_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
-          if (timeout) {
-            logger.info(
-                "timeout when waiting for next WAL entry ready, execute rollWALFile. Current search index in wal buffer is {}, and next target index is {}",
-                buffer.getCurrentSearchIndex(),
-                nextSearchIndex);
-            rollWALFile();
-            walFileRolled = true;
-          }
-        } else {
-          buffer.waitForFlush();
+        boolean timeout =
+            !buffer.waitForFlush(WAIT_FOR_NEXT_WAL_ENTRY_TIMEOUT_IN_SEC, TimeUnit.SECONDS);
+        if (timeout) {
+          logger.info(
+              "timeout when waiting for next WAL entry ready. Current search index in wal buffer is {}, and next target index is {}",
+              buffer.getCurrentSearchIndex(),
+              nextSearchIndex);
         }
+        rollWALFile();
       }
     }
 
@@ -693,13 +701,11 @@ public class WALNode implements IWALNode {
 
     @Override
     public void skipTo(long targetIndex) {
-      if (targetIndex < nextSearchIndex) {
-        logger.warn(
-            "Skip from {} to {}, it's a dangerous operation because insert plan {} may have been lost.",
-            nextSearchIndex,
-            targetIndex,
-            targetIndex);
-      }
+      logger.info(
+          "Skip from {} to {}, it's a dangerous operation because insert plan {} may have been lost.",
+          nextSearchIndex,
+          targetIndex,
+          targetIndex);
       reset();
       nextSearchIndex = targetIndex;
     }

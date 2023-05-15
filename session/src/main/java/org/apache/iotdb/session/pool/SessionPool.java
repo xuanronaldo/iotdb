@@ -841,6 +841,30 @@ public class SessionPool implements ISessionPool {
     }
   }
 
+  @Override
+  public void fastInsertRecords(
+      List<String> multiSeriesIds,
+      List<Long> times,
+      List<List<TSDataType>> typesList,
+      List<List<Object>> valuesList)
+      throws IoTDBConnectionException, StatementExecutionException {
+    for (int i = 0; i < RETRY; i++) {
+      ISession session = getSession();
+      try {
+        session.fastInsertRecords(multiSeriesIds, times, typesList, valuesList);
+        putBack(session);
+        return;
+      } catch (IoTDBConnectionException e) {
+        // TException means the connection is broken, remove it and get a new one.
+        logger.warn("insertAlignedRecords failed", e);
+        cleanSessionAndMayThrowConnectionException(session, i, e);
+      } catch (StatementExecutionException | RuntimeException e) {
+        putBack(session);
+        throw e;
+      }
+    }
+  }
+
   /**
    * Insert data that belong to the same device in batch format, which can reduce the overhead of
    * network. This method is just like jdbc batch insert, we pack some insert request in batch and

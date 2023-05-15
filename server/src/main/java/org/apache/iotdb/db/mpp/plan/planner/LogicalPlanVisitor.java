@@ -42,6 +42,8 @@ import org.apache.iotdb.db.mpp.plan.planner.plan.node.metedata.write.InternalCre
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.metedata.write.InternalCreateTimeSeriesNode;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.metedata.write.MeasurementGroup;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.DeleteDataNode;
+import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.FastInsertRowNode;
+import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.FastInsertRowsNode;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.InsertMultiTabletsNode;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.InsertRowNode;
 import org.apache.iotdb.db.mpp.plan.planner.plan.node.write.InsertRowsNode;
@@ -53,6 +55,8 @@ import org.apache.iotdb.db.mpp.plan.statement.StatementNode;
 import org.apache.iotdb.db.mpp.plan.statement.StatementVisitor;
 import org.apache.iotdb.db.mpp.plan.statement.component.Ordering;
 import org.apache.iotdb.db.mpp.plan.statement.crud.DeleteDataStatement;
+import org.apache.iotdb.db.mpp.plan.statement.crud.FastInsertRowStatement;
+import org.apache.iotdb.db.mpp.plan.statement.crud.FastInsertRowsStatement;
 import org.apache.iotdb.db.mpp.plan.statement.crud.InsertMultiTabletsStatement;
 import org.apache.iotdb.db.mpp.plan.statement.crud.InsertRowStatement;
 import org.apache.iotdb.db.mpp.plan.statement.crud.InsertRowsOfOneDeviceStatement;
@@ -472,6 +476,17 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
   }
 
   @Override
+  public PlanNode visitFastInsertRow(
+      FastInsertRowStatement insertRowStatement, MPPQueryContext context) {
+    // convert insert statement to insert node
+    return new FastInsertRowNode(
+        context.getQueryId().genPlanNodeId(),
+        insertRowStatement.getDevicePath(),
+        insertRowStatement.getTime(),
+        insertRowStatement.getRawValues());
+  }
+
+  @Override
   public PlanNode visitLoadFile(LoadTsFileStatement loadTsFileStatement, MPPQueryContext context) {
     return new LoadTsFileNode(
         context.getQueryId().genPlanNodeId(), loadTsFileStatement.getResources());
@@ -635,15 +650,26 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
       InsertRowStatement insertRowStatement =
           insertRowsStatement.getInsertRowStatementList().get(i);
       insertRowsNode.addOneInsertRowNode(
-          new InsertRowNode(
+          (InsertRowNode) insertRowStatement.accept(this, context), i);
+    }
+    return insertRowsNode;
+  }
+
+  @Override
+  public PlanNode visitFastInsertRows(
+      FastInsertRowsStatement insertRowsStatement, MPPQueryContext context) {
+    // convert insert statement to insert node
+    FastInsertRowsNode insertRowsNode =
+        new FastInsertRowsNode(context.getQueryId().genPlanNodeId());
+    for (int i = 0; i < insertRowsStatement.getInsertRowStatementList().size(); i++) {
+      InsertRowStatement fastInsertRowStatement =
+          insertRowsStatement.getInsertRowStatementList().get(i);
+      insertRowsNode.addOneInsertRowNode(
+          new FastInsertRowNode(
               insertRowsNode.getPlanNodeId(),
-              insertRowStatement.getDevicePath(),
-              insertRowStatement.isAligned(),
-              insertRowStatement.getMeasurements(),
-              insertRowStatement.getDataTypes(),
-              insertRowStatement.getTime(),
-              insertRowStatement.getValues(),
-              insertRowStatement.isNeedInferType()),
+              fastInsertRowStatement.getDevicePath(),
+              fastInsertRowStatement.getTime(),
+              ((FastInsertRowStatement) fastInsertRowStatement).getRawValues()),
           i);
     }
     return insertRowsNode;
