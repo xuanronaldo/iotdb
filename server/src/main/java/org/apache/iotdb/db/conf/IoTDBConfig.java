@@ -825,7 +825,7 @@ public class IoTDBConfig {
   private int frequencyIntervalInMinute = 1;
 
   /** time cost(ms) threshold for slow query. Unit: millisecond */
-  private long slowQueryThreshold = 5000;
+  private long slowQueryThreshold = 5000000;
 
   private int patternMatchingThreshold = 1000000;
 
