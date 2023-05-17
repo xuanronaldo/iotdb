@@ -163,7 +163,7 @@ public class ClusterScheduler implements IScheduler {
     }
     // TODO: (xingtanzjr) handle the exception when the termination cannot succeed
     if (queryTerminator != null) {
-      queryTerminator.terminate(t);
+      // queryTerminator.terminate(t);
     }
   }
 

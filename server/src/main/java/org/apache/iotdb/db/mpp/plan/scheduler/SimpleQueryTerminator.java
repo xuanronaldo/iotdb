@@ -116,8 +116,6 @@ public class SimpleQueryTerminator implements IQueryTerminator {
         return true;
       }
 
-      logger.error("!!!!!!!!unexpected!!!!!!!!!");
-
       try (SyncDataNodeInternalServiceClient client =
           internalServiceClientManager.borrowClient(endPoint)) {
         client.cancelQuery(new TCancelQueryReq(queryId.getId(), unfinishedFIs, false));
