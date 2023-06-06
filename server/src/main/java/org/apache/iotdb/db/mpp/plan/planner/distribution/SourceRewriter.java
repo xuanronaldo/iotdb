@@ -483,14 +483,12 @@ public class SourceRewriter extends SimplePlanNodeRewriter<DistributionPlanConte
     List<AggregationDescriptor> leafAggDescriptorList = new ArrayList<>();
     node.getAggregationDescriptorList()
         .forEach(
-            descriptor -> {
-              leafAggDescriptorList.add(
-                  new AggregationDescriptor(
-                      descriptor.getAggregationFuncName(),
-                      AggregationStep.PARTIAL,
-                      descriptor.getInputExpressions(),
-                      descriptor.getInputAttributes()));
-            });
+            descriptor -> leafAggDescriptorList.add(
+                new AggregationDescriptor(
+                    descriptor.getAggregationFuncName(),
+                    AggregationStep.PARTIAL,
+                    descriptor.getInputExpressions(),
+                    descriptor.getInputAttributes())));
     leafAggDescriptorList.forEach(
         d ->
             LogicalPlanBuilder.updateTypeProviderByPartialAggregation(
@@ -498,14 +496,12 @@ public class SourceRewriter extends SimplePlanNodeRewriter<DistributionPlanConte
     List<AggregationDescriptor> rootAggDescriptorList = new ArrayList<>();
     node.getAggregationDescriptorList()
         .forEach(
-            descriptor -> {
-              rootAggDescriptorList.add(
-                  new AggregationDescriptor(
-                      descriptor.getAggregationFuncName(),
-                      context.isRoot ? AggregationStep.FINAL : AggregationStep.INTERMEDIATE,
-                      descriptor.getInputExpressions(),
-                      descriptor.getInputAttributes()));
-            });
+            descriptor -> rootAggDescriptorList.add(
+                new AggregationDescriptor(
+                    descriptor.getAggregationFuncName(),
+                    context.isRoot ? AggregationStep.FINAL : AggregationStep.INTERMEDIATE,
+                    descriptor.getInputExpressions(),
+                    descriptor.getInputAttributes())));
 
     AggregationNode aggregationNode =
         new AggregationNode(

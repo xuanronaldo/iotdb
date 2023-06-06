@@ -218,6 +218,7 @@ public class StatementGenerator {
     FromComponent fromComponent = new FromComponent();
     fromComponent.addPrefixPath(new PartialPath("", false));
     queryStatement.setFromComponent(fromComponent);
+    queryStatement.setSingleSeriesAggregation(true);
 
     SelectComponent selectComponent = new SelectComponent(zoneId);
     List<PartialPath> selectPaths = new ArrayList<>();
@@ -227,6 +228,9 @@ public class StatementGenerator {
       } else {
         selectPaths.add(new PartialPath(pathStr));
       }
+    }
+    if (req.isSingleSeries()) {
+      queryStatement.setSingleSeriesAggregation(true);
     }
     List<TAggregationType> aggregations = req.getAggregations();
     for (int i = 0; i < aggregations.size(); i++) {

@@ -39,6 +39,7 @@ import static org.apache.iotdb.db.mpp.plan.analyze.ExpressionUtils.reconstructTi
 
 public class ConcatExpressionWithSuffixPathsVisitor
     extends CartesianProductVisitor<ConcatExpressionWithSuffixPathsVisitor.Context> {
+
   @Override
   public List<Expression> visitFunctionExpression(
       FunctionExpression functionExpression, Context context) {

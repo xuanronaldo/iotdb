@@ -957,6 +957,38 @@ public class Session implements ISession {
     }
   }
 
+  @Override
+  public SessionDataSet executeSingleSeriesAggregationQuery(
+      String path, TAggregationType aggregationType, long startTime, long endTime, long interval)
+      throws StatementExecutionException, IoTDBConnectionException {
+    try {
+      return defaultSessionConnection.executeAggregationQuery(
+          Collections.singletonList(path),
+          Collections.singletonList(aggregationType),
+          startTime,
+          endTime,
+          interval);
+    } catch (RedirectException e) {
+      handleQueryRedirection(e.getEndPoint());
+      if (enableQueryRedirection) {
+        // retry
+        try {
+          return defaultSessionConnection.executeAggregationQuery(
+              Collections.singletonList(path),
+              Collections.singletonList(aggregationType),
+              startTime,
+              endTime,
+              interval);
+        } catch (RedirectException redirectException) {
+          logger.error("redirect twice", redirectException);
+          throw new StatementExecutionException("redirect twice, please try again.");
+        }
+      } else {
+        throw new StatementExecutionException(MSG_DONOT_ENABLE_REDIRECT);
+      }
+    }
+  }
+
   /**
    * insert data in one row, if you want to improve your performance, please use insertRecords
    * method or insertTablet method

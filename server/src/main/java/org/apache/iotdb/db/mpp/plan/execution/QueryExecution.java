@@ -64,6 +64,7 @@ import org.apache.iotdb.db.mpp.plan.statement.crud.InsertBaseStatement;
 import org.apache.iotdb.db.mpp.plan.statement.crud.InsertMultiTabletsStatement;
 import org.apache.iotdb.db.mpp.plan.statement.crud.InsertRowsStatement;
 import org.apache.iotdb.db.mpp.plan.statement.crud.LoadTsFileStatement;
+import org.apache.iotdb.db.mpp.plan.statement.crud.QueryStatement;
 import org.apache.iotdb.db.utils.SetThreadName;
 import org.apache.iotdb.mpp.rpc.thrift.TFragmentInstanceId;
 import org.apache.iotdb.rpc.RpcUtils;
@@ -360,11 +361,15 @@ public class QueryExecution implements IQueryExecution {
     DistributionPlanner planner = new DistributionPlanner(this.analysis, this.logicalPlan);
     this.distributedPlan = planner.planFragments();
 
+    if (rawStatement instanceof QueryStatement && ((QueryStatement) rawStatement).isSingleSeriesAggregation()) {
+      // simplify planner.planFragments() process
+    }
+
     if (rawStatement.isQuery()) {
       QUERY_PLAN_COST_METRIC_SET.recordPlanCost(
           DISTRIBUTION_PLANNER, System.nanoTime() - startTime);
     }
-    if (isQuery() && logger.isDebugEnabled()) {
+    if (logger.isDebugEnabled() && isQuery()) {
       logger.debug(
           "distribution plan done. Fragment instance count is {}, details is: \n {}",
           distributedPlan.getInstances().size(),

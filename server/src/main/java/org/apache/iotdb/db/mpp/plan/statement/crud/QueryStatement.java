@@ -114,6 +114,9 @@ public class QueryStatement extends Statement {
 
   private boolean useWildcard = true;
 
+  // single timeseries, single aggregation type
+  private boolean isSingleSeriesAggregation = false;
+
   public QueryStatement() {
     this.statementType = StatementType.QUERY;
   }
@@ -478,6 +481,14 @@ public class QueryStatement extends Statement {
 
   public boolean useWildcard() {
     return useWildcard;
+  }
+
+  public void setSingleSeriesAggregation(boolean singleSeriesAggregation) {
+    this.isSingleSeriesAggregation = singleSeriesAggregation;
+  }
+
+  public boolean isSingleSeriesAggregation() {
+    return this.isSingleSeriesAggregation;
   }
 
   public void semanticCheck() {

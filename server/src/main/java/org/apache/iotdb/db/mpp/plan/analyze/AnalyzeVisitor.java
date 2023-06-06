@@ -236,6 +236,11 @@ public class AnalyzeVisitor extends StatementVisitor<Analysis, MPPQueryContext> 
 
   @Override
   public Analysis visitQuery(QueryStatement queryStatement, MPPQueryContext context) {
+    if (queryStatement.isSingleSeriesAggregation() || queryStatement.isGroupBy()) {
+      queryStatement.setSingleSeriesAggregation(true);
+      return visitSimpleSingleSeriesAggregationQuery(queryStatement, context);
+    }
+
     Analysis analysis = new Analysis();
     try {
       // check for semantic errors
@@ -360,6 +365,120 @@ public class AnalyzeVisitor extends StatementVisitor<Analysis, MPPQueryContext> 
       analyzeGroupByTime(analysis, queryStatement);
 
       analyzeFill(analysis, queryStatement);
+
+      // generate result set header according to output expressions
+      analyzeOutput(analysis, queryStatement, outputExpressions);
+
+      // fetch partition information
+      analyzeDataPartition(analysis, queryStatement, schemaTree);
+
+    } catch (StatementAnalyzeException e) {
+      logger.warn("Meet error when analyzing the query statement: ", e);
+      throw new StatementAnalyzeException(
+          "Meet error when analyzing the query statement: " + e.getMessage());
+    }
+    return analysis;
+  }
+
+  // single aggregation with single timeseries (could associate with start time, end time and
+  // interval)
+  public Analysis visitSimpleSingleSeriesAggregationQuery(
+      QueryStatement queryStatement, MPPQueryContext context) {
+    Analysis analysis = new Analysis();
+    try {
+      if (queryStatement.isGroupByTag()) {
+        throw new SemanticException("GroupByTag is not supported in SimpleSingleSeriesAggregation");
+      }
+      if (queryStatement.isLastQuery()) {
+        throw new SemanticException("LastQuery is not supported in SimpleSingleSeriesAggregation");
+      }
+      if (analysis.useLogicalView()) {
+        throw new SemanticException("View is not supported in SimpleSingleSeriesAggregation");
+      }
+      if (queryStatement.isAlignByDevice()) {
+        throw new SemanticException(
+            "AlignByDevice is not supported in SimpleSingleSeriesAggregation");
+      }
+      if (queryStatement.hasHaving()) {
+        throw new SemanticException("Having is not supported in SimpleSingleSeriesAggregation");
+      }
+      if (queryStatement.getFillComponent() != null) {
+        throw new SemanticException("Fill is not supported in SimpleSingleSeriesAggregation");
+      }
+      if (queryStatement.useWildcard()) {
+        throw new SemanticException("Wildcard is not supported in SimpleSingleSeriesAggregation");
+      }
+      if (queryStatement.hasOrderByExpression()) {
+        throw new SemanticException("OrderBy is not supported in SimpleSingleSeriesAggregation");
+      }
+      if (queryStatement.isSelectInto()) {
+        throw new SemanticException("SelectInto is not supported in SimpleSingleSeriesAggregation");
+      }
+      if (queryStatement.hasWhere()) {
+        throw new SemanticException("Where is not supported in SimpleSingleSeriesAggregation");
+      }
+
+      // check for semantic errors
+      // queryStatement.semanticCheck();
+
+      // concat path and construct path pattern tree
+      PathPatternTree patternTree = new PathPatternTree(false);
+      // TODO optimize rewrite method, just concat PrefixPath and Expression
+      // List<PartialPath> prefixPaths = queryStatement.getFromComponent().getPrefixPaths();
+      // List<ResultColumn> resultColumns =
+      //        concatSelectWithFrom(queryStatement.getSelectComponent(), prefixPaths, false);
+      // queryStatement.getSelectComponent().setResultColumns(resultColumns);
+      queryStatement =
+          (QueryStatement) new ConcatPathRewriter().rewrite(queryStatement, patternTree);
+      analysis.setStatement(queryStatement);
+
+      // request schema fetch API
+      long startTime = System.nanoTime();
+      ISchemaTree schemaTree;
+      try {
+        schemaTree = schemaFetcher.fetchSchema(patternTree, context);
+        // If there is no leaf node in the schema tree, the query should be completed immediately
+        if (schemaTree.isEmpty()) {
+          return finishQuery(queryStatement, analysis);
+        }
+      } finally {
+        QueryPlanCostMetricSet.getInstance()
+            .recordPlanCost(SCHEMA_FETCHER, System.nanoTime() - startTime);
+      }
+
+      // extract global time filter from query filter and determine if there is a value filter
+      analyzeGlobalTimeFilter(analysis, queryStatement);
+
+      List<Pair<Expression, String>> outputExpressions;
+      Map<Integer, List<Pair<Expression, String>>> outputExpressionMap =
+          analyzeSelect(analysis, queryStatement, schemaTree);
+
+      outputExpressions = new ArrayList<>();
+      outputExpressionMap.values().forEach(outputExpressions::addAll);
+      analysis.setOutputExpressions(outputExpressions);
+      if (outputExpressions.isEmpty()) {
+        return finishQuery(queryStatement, analysis);
+      }
+
+      analyzeGroupBy(analysis, queryStatement, schemaTree);
+      analyzeGroupByLevel(analysis, queryStatement, outputExpressionMap, outputExpressions);
+
+      Set<Expression> selectExpressions = new LinkedHashSet<>();
+      if (queryStatement.isOutputEndTime()) {
+        selectExpressions.add(endTimeExpression);
+      }
+      for (Pair<Expression, String> outputExpressionAndAlias : outputExpressions) {
+        selectExpressions.add(outputExpressionAndAlias.left);
+      }
+      analysis.setSelectExpressions(selectExpressions);
+
+      analyzeAggregation(analysis, queryStatement);
+
+      analyzeSourceTransform(analysis, queryStatement);
+
+      analyzeSource(analysis, queryStatement);
+
+      analyzeGroupByTime(analysis, queryStatement);
 
       // generate result set header according to output expressions
       analyzeOutput(analysis, queryStatement, outputExpressions);

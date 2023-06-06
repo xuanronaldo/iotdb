@@ -527,6 +527,93 @@ public class ClientRPCServiceImpl implements IClientRPCServiceWithHandler {
       finished = true;
       t = e;
       return RpcUtils.getTSExecuteStatementResp(
+          onQueryException(e, "\"" + req + "\". " + OperationType.EXECUTE_AGG_QUERY));
+    } catch (Error error) {
+      t = error;
+      throw error;
+    } finally {
+
+      long currentOperationCost = System.nanoTime() - startTime;
+      COORDINATOR.recordExecutionTime(queryId, currentOperationCost);
+
+      // record each operation time cost
+      addStatementExecutionLatency(
+          OperationType.EXECUTE_AGG_QUERY, StatementType.QUERY, currentOperationCost);
+
+      if (finished) {
+        // record total time cost for one query
+        long executionTime = COORDINATOR.getTotalExecutionTime(queryId);
+        addQueryLatency(
+            StatementType.QUERY, executionTime > 0 ? executionTime : currentOperationCost);
+        COORDINATOR.cleanupQueryExecution(queryId, t);
+      }
+
+      SESSION_MANAGER.updateIdleTime();
+      if (quota != null) {
+        quota.close();
+      }
+    }
+  }
+
+  private TSExecuteStatementResp executeSingleSeriesAggregationQueryInternal(
+      TSAggregationQueryReq req, SelectResult setResult) {
+    boolean finished = false;
+    long queryId = Long.MIN_VALUE;
+    IClientSession clientSession = SESSION_MANAGER.getCurrSessionAndUpdateIdleTime();
+    OperationQuota quota = null;
+    if (!SESSION_MANAGER.checkLogin(clientSession)) {
+      return RpcUtils.getTSExecuteStatementResp(getNotLoggedInStatus());
+    }
+    long startTime = System.nanoTime();
+    Throwable t = null;
+    try {
+      Statement s = StatementGenerator.createStatement(req, clientSession.getZoneId());
+      // permission check
+      TSStatus status = AuthorityChecker.checkAuthority(s, clientSession);
+      if (status.getCode() != TSStatusCode.SUCCESS_STATUS.getStatusCode()) {
+        return RpcUtils.getTSExecuteStatementResp(status);
+      }
+
+      quota =
+          DataNodeThrottleQuotaManager.getInstance()
+              .checkQuota(SESSION_MANAGER.getCurrSession().getUsername(), s);
+
+      queryId = SESSION_MANAGER.requestQueryId(clientSession, req.statementId);
+      // create and cache dataset
+      ExecutionResult result =
+          COORDINATOR.execute(
+              s,
+              queryId,
+              SESSION_MANAGER.getSessionInfo(clientSession),
+              "",
+              partitionFetcher,
+              schemaFetcher,
+              req.getTimeout());
+
+      if (result.status.code != TSStatusCode.SUCCESS_STATUS.getStatusCode()) {
+        throw new RuntimeException("error code: " + result.status);
+      }
+
+      IQueryExecution queryExecution = COORDINATOR.getQueryExecution(queryId);
+
+      try (SetThreadName threadName = new SetThreadName(result.queryId.getId())) {
+        TSExecuteStatementResp resp;
+        if (queryExecution.isQuery()) {
+          resp = createResponse(queryExecution.getDatasetHeader(), queryId);
+          resp.setStatus(result.status);
+          finished = setResult.apply(resp, queryExecution, req.fetchSize);
+          resp.setMoreData(!finished);
+          quota.addReadResult(resp.getQueryResult());
+        } else {
+          resp = RpcUtils.getTSExecuteStatementResp(result.status);
+        }
+        return resp;
+      }
+
+    } catch (Exception e) {
+      finished = true;
+      t = e;
+      return RpcUtils.getTSExecuteStatementResp(
           onQueryException(e, "\"" + req + "\". " + OperationType.EXECUTE_LAST_DATA_QUERY));
     } catch (Error error) {
       t = error;

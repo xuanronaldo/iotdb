@@ -315,6 +315,7 @@ public class LogicalPlanBuilder {
       List<String> tagKeys,
       Map<List<String>, LinkedHashMap<Expression, List<Expression>>>
           tagValuesToGroupedTimeseriesOperands) {
+
     boolean needCheckAscending = groupByTimeParameter == null;
     Map<PartialPath, List<AggregationDescriptor>> ascendingAggregations = new HashMap<>();
     Map<PartialPath, List<AggregationDescriptor>> descendingAggregations = new HashMap<>();

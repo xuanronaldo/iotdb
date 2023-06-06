@@ -350,6 +350,7 @@ struct TSAggregationQueryReq {
   9: optional i32 fetchSize
   10: optional i64 timeout
   11: optional bool legalPathNodes
+  12: optional bool singleSeriesAggregation
 }
 
 struct TSCreateMultiTimeseriesReq {

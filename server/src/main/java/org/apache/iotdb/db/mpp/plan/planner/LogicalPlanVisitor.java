@@ -83,8 +83,6 @@ import org.apache.iotdb.db.mpp.plan.statement.metadata.view.ShowLogicalViewState
 import org.apache.iotdb.db.mpp.plan.statement.sys.ShowQueriesStatement;
 import org.apache.iotdb.tsfile.utils.Pair;
 
-import org.apache.commons.lang3.Validate;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -113,6 +111,10 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
 
   @Override
   public PlanNode visitQuery(QueryStatement queryStatement, MPPQueryContext context) {
+    if (queryStatement.isSingleSeriesAggregation()) {
+      return visitSingleSeriesAggregationQuery(queryStatement, context);
+    }
+
     LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(analysis, context);
 
     if (queryStatement.isLastQuery()) {
@@ -215,6 +217,24 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
       planBuilder = planBuilder.planInto(analysis.getIntoPathDescriptor());
     }
 
+    return planBuilder.getRoot();
+  }
+
+  private PlanNode visitSingleSeriesAggregationQuery(
+      QueryStatement queryStatement, MPPQueryContext context) {
+    LogicalPlanBuilder planBuilder = new LogicalPlanBuilder(analysis, context);
+
+    planBuilder =
+        planBuilder.planAggregationSource(
+            AggregationStep.SINGLE,
+            queryStatement.getResultTimeOrder(),
+            analysis.getGlobalTimeFilter(),
+            analysis.getGroupByTimeParameter(),
+            analysis.getAggregationExpressions(),
+            analysis.getSourceTransformExpressions(),
+            analysis.getCrossGroupByExpressions(),
+            analysis.getTagKeys(),
+            analysis.getTagValuesToGroupedTimeseriesOperands());
     return planBuilder.getRoot();
   }
 
@@ -346,12 +366,14 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
 
   private boolean cannotUseStatistics(Set<Expression> expressions) {
     for (Expression expression : expressions) {
-      Validate.isTrue(
-          expression instanceof FunctionExpression,
-          String.format("Invalid Aggregation Expression: %s", expression.getExpressionString()));
-      if (!BuiltinAggregationFunction.canUseStatistics(
-          ((FunctionExpression) expression).getFunctionName())) {
-        return true;
+      if (expression instanceof FunctionExpression) {
+        if (!BuiltinAggregationFunction.canUseStatistics(
+            ((FunctionExpression) expression).getFunctionName())) {
+          return true;
+        }
+      } else {
+        throw new IllegalArgumentException(
+            String.format("Invalid Aggregation Expression: %s", expression.getExpressionString()));
       }
     }
     return false;

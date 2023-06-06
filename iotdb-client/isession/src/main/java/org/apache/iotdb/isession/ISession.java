@@ -189,6 +189,10 @@ public interface ISession extends AutoCloseable {
       long slidingStep)
       throws StatementExecutionException, IoTDBConnectionException;
 
+  SessionDataSet executeSingleSeriesAggregationQuery(
+      String path, TAggregationType aggregationType, long startTime, long endTime, long interval)
+      throws StatementExecutionException, IoTDBConnectionException;
+
   void insertRecord(
       String deviceId,
       long time,
