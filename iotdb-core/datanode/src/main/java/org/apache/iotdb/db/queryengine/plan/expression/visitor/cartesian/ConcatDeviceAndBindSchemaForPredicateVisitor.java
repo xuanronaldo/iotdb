@@ -37,15 +37,19 @@ import java.util.List;
 import static org.apache.iotdb.db.queryengine.plan.analyze.ExpressionUtils.cartesianProduct;
 import static org.apache.iotdb.db.queryengine.plan.analyze.ExpressionUtils.reconstructFunctionExpressions;
 import static org.apache.iotdb.db.queryengine.plan.analyze.ExpressionUtils.reconstructTimeSeriesOperands;
+import static org.apache.iotdb.db.queryengine.plan.expression.Constants.ALIGN_BY_DEVICE_ONLY_SUPPORT_WRITABLE_VIEW;
+import static org.apache.iotdb.db.queryengine.plan.expression.Constants.WHERE_CLAUSE_NOT_SUPPORT_AGGREGATION_FUNCTION;
 import static org.apache.iotdb.db.queryengine.plan.expression.visitor.cartesian.BindSchemaForExpressionVisitor.transformViewPath;
 
 public class ConcatDeviceAndBindSchemaForPredicateVisitor
     extends CartesianProductVisitor<ConcatDeviceAndBindSchemaForPredicateVisitor.Context> {
+
   @Override
   public List<Expression> visitFunctionExpression(FunctionExpression predicate, Context context) {
     if (predicate.isBuiltInAggregationFunctionExpression() && context.isWhere()) {
-      throw new SemanticException("aggregate functions are not supported in WHERE clause");
+      throw new SemanticException(WHERE_CLAUSE_NOT_SUPPORT_AGGREGATION_FUNCTION);
     }
+
     List<List<Expression>> extendedExpressions = new ArrayList<>();
     for (Expression suffixExpression : predicate.getExpressions()) {
       extendedExpressions.add(process(suffixExpression, context));
@@ -60,13 +64,15 @@ public class ConcatDeviceAndBindSchemaForPredicateVisitor
     PartialPath measurement = predicate.getPath();
     PartialPath concatPath = context.getDevicePath().concatPath(measurement);
 
-    List<MeasurementPath> nonViewPathList = new ArrayList<>();
-    List<MeasurementPath> viewPathList = new ArrayList<>();
     List<MeasurementPath> actualPaths =
         context.getSchemaTree().searchMeasurementPaths(concatPath).left;
     if (actualPaths.isEmpty()) {
       return Collections.singletonList(new NullOperand());
     }
+
+    // process logical view
+    List<MeasurementPath> nonViewPathList = new ArrayList<>();
+    List<MeasurementPath> viewPathList = new ArrayList<>();
     for (MeasurementPath measurementPath : actualPaths) {
       if (measurementPath.getMeasurementSchema().isLogicalView()) {
         viewPathList.add(measurementPath);
@@ -80,8 +86,7 @@ public class ConcatDeviceAndBindSchemaForPredicateVisitor
     for (MeasurementPath measurementPath : viewPathList) {
       Expression replacedExpression = transformViewPath(measurementPath, context.getSchemaTree());
       if (!(replacedExpression instanceof TimeSeriesOperand)) {
-        throw new SemanticException(
-            "Only writable view timeseries are supported in ALIGN BY DEVICE queries.");
+        throw new SemanticException(ALIGN_BY_DEVICE_ONLY_SUPPORT_WRITABLE_VIEW);
       }
 
       replacedExpression.setViewPath(measurementPath);

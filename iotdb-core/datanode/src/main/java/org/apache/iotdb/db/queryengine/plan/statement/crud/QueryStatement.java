@@ -51,6 +51,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.iotdb.db.queryengine.plan.expression.Constants.WHERE_CLAUSE_NOT_SUPPORT_AGGREGATION_FUNCTION;
+
 /**
  * Base class of SELECT statement.
  *
@@ -542,7 +544,7 @@ public class QueryStatement extends Statement {
       Expression whereExpression = getWhereCondition().getPredicate();
       if (ExpressionAnalyzer.identifyOutputColumnType(whereExpression, true)
           == ResultColumn.ColumnType.AGGREGATION) {
-        throw new SemanticException("aggregate functions are not supported in WHERE clause");
+        throw new SemanticException(WHERE_CLAUSE_NOT_SUPPORT_AGGREGATION_FUNCTION);
       }
     }
 

@@ -1023,6 +1023,63 @@ public class AnalyzeTest {
         "alias 'a' can only be matched with one time series");
   }
 
+  @Test
+  public void testLastQuery() {
+    String sql = "select count(s1 + s2), last_value(s2) from root.sg.d1 group by ([0, 100), 10ms);";
+    Analysis actualAnalysis = analyzeSQL(sql);
+  }
+
+  @Test
+  public void testGroupBy() {
+    // test group by level
+    String sql =
+        "select count(s1), count(s2) from root.sg.d1 group by ([0, 100), 10ms), level=2 "
+            + "having count(s2) > 1 offset 1 limit 1";
+    Analysis actualAnalysis = analyzeSQL(sql);
+
+    // test group by tag
+
+    // test group by + align by device
+
+    //
+  }
+
+  @Test
+  public void testShowTimeseries() {
+    String sql = "show timeseries";
+    Analysis actualAnalysis = analyzeSQL(sql);
+    assert actualAnalysis != null;
+    assertEquals(11, actualAnalysis.getRespDatasetHeader().getColumnHeaders().size());
+    assertEquals(
+        new ColumnHeader("Timeseries", TSDataType.TEXT, null),
+        actualAnalysis.getRespDatasetHeader().getColumnHeaders().get(0));
+  }
+
+  @Test
+  public void testShowStorageGroup() {
+    String sql = "show storage group";
+    Analysis actualAnalysis = analyzeSQL(sql);
+    assert actualAnalysis != null;
+    assertEquals(5, actualAnalysis.getRespDatasetHeader().getColumnHeaders().size());
+    assertEquals(
+        new ColumnHeader("Database", TSDataType.TEXT, null),
+        actualAnalysis.getRespDatasetHeader().getColumnHeaders().get(0));
+  }
+
+  @Test
+  public void testExplain() {
+    Analysis analysis =
+        analyzeSQL("explain select s1 as a, s2 as b from root.sg.d2.a, root.sg.d2.b");
+    assert analysis != null;
+    Assert.assertEquals(
+        analysis.getRespDatasetHeader(),
+        new DatasetHeader(
+            Arrays.asList(
+                new ColumnHeader("root.sg.d2.a.s1", TSDataType.INT32, "a"),
+                new ColumnHeader("root.sg.d2.a.s2", TSDataType.DOUBLE, "b")),
+            false));
+  }
+
   private void assertTestFail(String sql, String errMsg) {
     try {
       Statement statement =

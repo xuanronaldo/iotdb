@@ -33,6 +33,7 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apache.iotdb.db.queryengine.plan.expression.Constants.WHERE_CLAUSE_NOT_SUPPORT_AGGREGATION_FUNCTION;
 import static org.apache.iotdb.db.queryengine.plan.statement.crud.QueryStatement.RAW_AGGREGATION_HYBRID_QUERY_ERROR_MSG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -58,7 +59,7 @@ public class QueryStatementTest {
             // test for where clause
             new Pair<>(
                 "SELECT s1 FROM root.sg.d1 WHERE count(s1) > 0",
-                "aggregate functions are not supported in WHERE clause"),
+                WHERE_CLAUSE_NOT_SUPPORT_AGGREGATION_FUNCTION),
 
             // test for having clause
             new Pair<>(
@@ -135,7 +136,7 @@ public class QueryStatementTest {
       try {
         checkErrorQuerySql(errorSql);
       } catch (SemanticException e) {
-        assertEquals(errorMsg, e.getMessage());
+        assertEquals("Test sql is: " + errorSql, errorMsg, e.getMessage());
         continue;
       } catch (Exception ex) {
         fail(String.format("Meets exception %s in test sql: `%s`", errorMsg, errorSql));

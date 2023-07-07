@@ -443,9 +443,9 @@ public class ExpressionAnalyzer {
   }
 
   /**
-   * Concat expression with the device path in the FROM clause.And then, bind schema ({@link
-   * PartialPath} -> {@link MeasurementPath}) and removes wildcards in Expression. This method used
-   * in ALIGN BY DEVICE query.
+   * Concat expression with the device path in the FROM clause. And then, bind schema ({@link
+   * PartialPath} -> {@link MeasurementPath}) and removes wildcards in Expression. This method is
+   * used in ALIGN BY DEVICE query.
    *
    * @param devicePath device path in the FROM clause
    * @return expression list with full path and after binding schema

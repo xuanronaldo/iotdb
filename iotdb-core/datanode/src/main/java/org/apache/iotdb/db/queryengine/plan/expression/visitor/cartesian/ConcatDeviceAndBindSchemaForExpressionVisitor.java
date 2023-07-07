@@ -23,7 +23,6 @@ import org.apache.iotdb.commons.path.MeasurementPath;
 import org.apache.iotdb.commons.path.PartialPath;
 import org.apache.iotdb.db.exception.sql.SemanticException;
 import org.apache.iotdb.db.queryengine.common.schematree.ISchemaTree;
-import org.apache.iotdb.db.queryengine.plan.analyze.ExpressionUtils;
 import org.apache.iotdb.db.queryengine.plan.expression.Expression;
 import org.apache.iotdb.db.queryengine.plan.expression.leaf.ConstantOperand;
 import org.apache.iotdb.db.queryengine.plan.expression.leaf.TimeSeriesOperand;
@@ -36,6 +35,8 @@ import java.util.List;
 
 import static org.apache.iotdb.db.queryengine.plan.analyze.ExpressionUtils.cartesianProduct;
 import static org.apache.iotdb.db.queryengine.plan.analyze.ExpressionUtils.reconstructFunctionExpressions;
+import static org.apache.iotdb.db.queryengine.plan.analyze.ExpressionUtils.reconstructTimeSeriesOperands;
+import static org.apache.iotdb.db.queryengine.plan.expression.Constants.ALIGN_BY_DEVICE_ONLY_SUPPORT_WRITABLE_VIEW;
 import static org.apache.iotdb.db.queryengine.plan.expression.visitor.cartesian.BindSchemaForExpressionVisitor.transformViewPath;
 import static org.apache.iotdb.db.utils.TypeInferenceUtils.bindTypeForAggregationNonSeriesInputExpressions;
 
@@ -47,9 +48,9 @@ public class ConcatDeviceAndBindSchemaForExpressionVisitor
       FunctionExpression functionExpression, Context context) {
     List<List<Expression>> extendedExpressions = new ArrayList<>();
     for (Expression suffixExpression : functionExpression.getExpressions()) {
-      List<Expression> concatedExpression = process(suffixExpression, context);
-      if (concatedExpression != null && !concatedExpression.isEmpty()) {
-        extendedExpressions.add(concatedExpression);
+      List<Expression> concatExpression = process(suffixExpression, context);
+      if (concatExpression != null && !concatExpression.isEmpty()) {
+        extendedExpressions.add(concatExpression);
       }
 
       // We just process first input Expression of AggregationFunction,
@@ -82,23 +83,22 @@ public class ConcatDeviceAndBindSchemaForExpressionVisitor
     }
 
     // process logical view
-    List<MeasurementPath> nonViewActualPaths = new ArrayList<>();
-    List<MeasurementPath> viewPaths = new ArrayList<>();
+    List<MeasurementPath> nonViewPathList = new ArrayList<>();
+    List<MeasurementPath> viewPathList = new ArrayList<>();
     for (MeasurementPath measurementPath : actualPaths) {
       if (measurementPath.getMeasurementSchema().isLogicalView()) {
-        viewPaths.add(measurementPath);
+        viewPathList.add(measurementPath);
       } else {
-        nonViewActualPaths.add(measurementPath);
+        nonViewPathList.add(measurementPath);
       }
     }
+
     List<Expression> reconstructTimeSeriesOperands =
-        ExpressionUtils.reconstructTimeSeriesOperands(timeSeriesOperand, nonViewActualPaths);
-    // handle logical views
-    for (MeasurementPath measurementPath : viewPaths) {
+        reconstructTimeSeriesOperands(timeSeriesOperand, nonViewPathList);
+    for (MeasurementPath measurementPath : viewPathList) {
       Expression replacedExpression = transformViewPath(measurementPath, context.getSchemaTree());
       if (!(replacedExpression instanceof TimeSeriesOperand)) {
-        throw new SemanticException(
-            "Only writable view timeseries are supported in ALIGN BY DEVICE queries.");
+        throw new SemanticException(ALIGN_BY_DEVICE_ONLY_SUPPORT_WRITABLE_VIEW);
       }
 
       replacedExpression.setViewPath(measurementPath);

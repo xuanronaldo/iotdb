@@ -21,6 +21,10 @@ package org.apache.iotdb.db.queryengine.plan.analyze;
 
 import org.apache.iotdb.commons.path.PartialPath;
 import org.apache.iotdb.commons.path.PathPatternTree;
+import org.apache.iotdb.commons.schema.view.LogicalViewSchema;
+import org.apache.iotdb.commons.schema.view.viewExpression.binary.arithmetic.AdditionViewExpression;
+import org.apache.iotdb.commons.schema.view.viewExpression.leaf.ConstantViewOperand;
+import org.apache.iotdb.commons.schema.view.viewExpression.leaf.TimeSeriesViewOperand;
 import org.apache.iotdb.db.queryengine.common.MPPQueryContext;
 import org.apache.iotdb.db.queryengine.common.schematree.ClusterSchemaTree;
 import org.apache.iotdb.db.queryengine.common.schematree.ISchemaTree;
@@ -37,7 +41,9 @@ import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
 import org.apache.iotdb.tsfile.utils.Pair;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -49,7 +55,7 @@ public class FakeSchemaFetcherImpl implements ISchemaFetcher {
   @Override
   public ClusterSchemaTree fetchSchema(PathPatternTree patternTree, MPPQueryContext context) {
     this.context = context;
-    schemaTree.setDatabases(Collections.singleton("root.sg"));
+    schemaTree.setDatabases(new HashSet<>(Arrays.asList("root.sg", "root.cpu")));
     return schemaTree;
   }
 
@@ -117,6 +123,56 @@ public class FakeSchemaFetcherImpl implements ISchemaFetcher {
     a.addChild("s1", s1);
     a.addChild("s2", s2);
     a.addAliasChild("status", s2);
+
+    // add view node
+    SchemaNode cpu = new SchemaInternalNode("cpu");
+    root.addChild("cpu", cpu);
+
+    // device1 only has base series (s1, s2, ms1)
+    SchemaEntityNode cpuDevice1 = new SchemaEntityNode("d1");
+    cpuDevice1.addChild(
+        "s1", new SchemaMeasurementNode("s1", new MeasurementSchema("s1", TSDataType.INT32)));
+    cpuDevice1.addChild(
+        "s2", new SchemaMeasurementNode("s2", new MeasurementSchema("s2", TSDataType.FLOAT)));
+    cpuDevice1.addChild(
+        "ms1", new SchemaMeasurementNode("ms1", new MeasurementSchema("ms1", TSDataType.INT32)));
+
+    // device1 only has base series (s1, s2)
+    SchemaEntityNode cpuDevice2 = new SchemaEntityNode("d2");
+    cpuDevice2.addChild(
+        "s1", new SchemaMeasurementNode("s1", new MeasurementSchema("s1", TSDataType.INT32)));
+    cpuDevice2.addChild(
+        "s2", new SchemaMeasurementNode("s2", new MeasurementSchema("s2", TSDataType.FLOAT)));
+
+    // device3 only has view series (ms1, ms2, ms3)
+    SchemaEntityNode cpuDevice3 = new SchemaEntityNode("d3");
+    cpuDevice3.addChild(
+        "ms1",
+        new SchemaMeasurementNode(
+            "ms1", new LogicalViewSchema("ms1", new TimeSeriesViewOperand("root.cpu.d1.s1"))));
+    cpuDevice3.addChild(
+        "ms2",
+        new SchemaMeasurementNode(
+            "ms2", new LogicalViewSchema("ms2", new TimeSeriesViewOperand("root.cpu.d1.s1"))));
+    TimeSeriesViewOperand timeSeriesViewOperand = new TimeSeriesViewOperand("root.cpu.d1.s1");
+    ConstantViewOperand constantViewOperand = new ConstantViewOperand(TSDataType.INT32, "2");
+    AdditionViewExpression add =
+        new AdditionViewExpression(timeSeriesViewOperand, constantViewOperand);
+    cpuDevice3.addChild("ms3", new SchemaMeasurementNode("ms3", new LogicalViewSchema("ms3", add)));
+
+    // device4 has both base series(s1) and view series(ms1)
+    SchemaEntityNode cpuDevice4 = new SchemaEntityNode("d4");
+    cpuDevice4.addChild(
+        "s1", new SchemaMeasurementNode("s1", new MeasurementSchema("s1", TSDataType.INT32)));
+    cpuDevice4.addChild(
+        "ms1",
+        new SchemaMeasurementNode(
+            "ms1", new LogicalViewSchema("ms1", new TimeSeriesViewOperand("root.cpu.d2.s1"))));
+
+    cpu.addChild("d1", cpuDevice1);
+    cpu.addChild("d2", cpuDevice2);
+    cpu.addChild("d3", cpuDevice3);
+    cpu.addChild("d4", cpuDevice4);
 
     return root;
   }
