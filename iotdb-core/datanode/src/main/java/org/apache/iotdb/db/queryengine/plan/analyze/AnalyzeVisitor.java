@@ -1945,31 +1945,29 @@ public class AnalyzeVisitor extends StatementVisitor<Analysis, MPPQueryContext> 
       boolean isAlignedDevice = intoPathIterator.isAlignedDevice();
 
       PartialPath sourcePath;
-      String sourceColumn;
+      String sourceColumn = sourceExpression.getExpressionString();
       PartialPath targetPath;
       if (sourceExpression instanceof TimeSeriesOperand) {
         if (viewPath != null) {
           try {
             sourcePath = new PartialPath(viewPath);
-            sourceColumn = viewPath;
           } catch (IllegalPathException e) {
             throw new RuntimeException(e);
           }
         } else {
           sourcePath = ((TimeSeriesOperand) sourceExpression).getPath();
-          sourceColumn = sourceExpression.getExpressionString();
         }
         targetPath = constructTargetPath(sourcePath, deviceTemplate, measurementTemplate);
       } else {
-        sourceColumn = sourceExpression.getExpressionString();
         targetPath = deviceTemplate.concatNode(measurementTemplate);
       }
-      intoPathDescriptor.specifyTargetPath(sourceColumn, targetPath);
+      intoPathDescriptor.specifyTargetPath(sourceColumn, viewPath, targetPath);
       intoPathDescriptor.specifyDeviceAlignment(
           targetPath.getDevicePath().toString(), isAlignedDevice);
 
       targetPathTree.appendFullPath(targetPath);
-      intoPathDescriptor.recordSourceColumnDataType(sourceColumn, analysis.getType(sourceExpression));
+      intoPathDescriptor.recordSourceColumnDataType(
+          sourceColumn, analysis.getType(sourceExpression));
 
       intoPathIterator.next();
     }
