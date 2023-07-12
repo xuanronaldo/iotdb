@@ -75,21 +75,13 @@ public class SessionExample {
     session.open(false);
 
     // set session fetchSize
-    session.setFetchSize(10000);
+//    session.setFetchSize(10000);
 
-    try {
-      session.createDatabase("root.sg1");
-    } catch (StatementExecutionException e) {
-      if (e.getStatusCode() != TSStatusCode.DATABASE_ALREADY_EXISTS.getStatusCode()) {
-        throw e;
-      }
-    }
-
-    //     createTemplate();
-    createTimeseries();
-    createMultiTimeseries();
-    insertRecord();
-    insertTablet();
+//    //     createTemplate();
+//    createTimeseries();
+//    createMultiTimeseries();
+//    insertRecord();
+//    insertTablet();
     //    insertTabletWithNullValues();
     //    insertTablets();
     //    insertRecords();
@@ -97,27 +89,27 @@ public class SessionExample {
     //    selectInto();
     //    createAndDropContinuousQueries();
     //    nonQuery();
-    query();
+//    query();
     //    queryWithTimeout();
-    rawDataQuery();
-    lastDataQuery();
-    aggregationQuery();
-    groupByQuery();
-    //    queryByIterator();
-    //    deleteData();
-    //    deleteTimeseries();
-    //    setTimeout();
-
-    sessionEnableRedirect = new Session(LOCAL_HOST, 6667, "root", "root");
-    sessionEnableRedirect.setEnableQueryRedirection(true);
-    sessionEnableRedirect.open(false);
-
-    // set session fetchSize
-    sessionEnableRedirect.setFetchSize(10000);
-
-    insertRecord4Redirect();
-    query4Redirect();
-    sessionEnableRedirect.close();
+//    rawDataQuery();
+//    lastDataQuery();
+//    aggregationQuery();
+//    groupByQuery();
+//    //    queryByIterator();
+//    //    deleteData();
+//    //    deleteTimeseries();
+//    //    setTimeout();
+//
+//    sessionEnableRedirect = new Session(LOCAL_HOST, 6667, "root", "root");
+//    sessionEnableRedirect.setEnableQueryRedirection(true);
+//    sessionEnableRedirect.open(false);
+//
+//    // set session fetchSize
+//    sessionEnableRedirect.setFetchSize(10000);
+//
+//    insertRecord4Redirect();
+//    query4Redirect();
+//    sessionEnableRedirect.close();
     session.close();
   }
 
