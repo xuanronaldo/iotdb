@@ -1219,8 +1219,8 @@ public class AnalyzeVisitor extends StatementVisitor<Analysis, MPPQueryContext> 
                 analyzeWhereSplitByDevice(queryStatement, devicePath, schemaTree));
       } catch (MeasurementNotExistException e) {
         logger.warn(
-            "Meets MeasurementNotExistException in analyzeDeviceToWhere when executing align by device, "
-                + "error msg: {}",
+            "Meets MeasurementNotExistException in analyzeDeviceToWhere "
+                + "when executing align by device, error msg: {}",
             e.getMessage());
         deviceIterator.remove();
         continue;
