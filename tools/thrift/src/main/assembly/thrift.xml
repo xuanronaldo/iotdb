@@ -28,12 +28,7 @@
         <!-- Include the executable -->
         <fileSet>
             <directory>${project.build.directory}/tools</directory>
-            <!-- Make the file executable -->
-            <fileMode>0755</fileMode>
-            <includes>
-                <include>**</include>
-            </includes>
-            <outputDirectory>bin</outputDirectory>
+            <outputDirectory>bin/Release</outputDirectory>
         </fileSet>
     </fileSets>
 </assembly>

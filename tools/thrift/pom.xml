@@ -44,7 +44,7 @@
                         <configuration>
                             <url>https://archive.apache.org/dist/thrift/${thrift.version}/thrift-${thrift.version}.exe</url>
                             <outputDirectory>${project.build.directory}/tools</outputDirectory>
-                            <outputFileName>${thrift.executable}</outputFileName>
+                            <outputFileName>thrift.exe</outputFileName>
                         </configuration>
                     </execution>
                 </executions>
