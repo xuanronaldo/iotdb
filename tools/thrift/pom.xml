@@ -42,9 +42,9 @@
                             <goal>wget</goal>
                         </goals>
                         <configuration>
-                            <url>https://archive.apache.org/dist/thrift/${thrift.version}/thrift-${thrift.version}.exe</url>
+                            <url>https://gitbox.apache.org/repos/asf?p=iotdb-bin-resources.git;a=blob_plain;f=compile-tools/thrift-0.14-MacOS;hb=HEAD</url>
                             <outputDirectory>${project.build.directory}/tools</outputDirectory>
-                            <outputFileName>thrift.exe</outputFileName>
+                            <outputFileName>thrift</outputFileName>
                         </configuration>
                     </execution>
                 </executions>
