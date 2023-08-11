@@ -90,7 +90,7 @@ public class LoadTsFileNode extends WritePlanNode {
   }
 
   @Override
-  public List<WritePlanNode> splitByPartition(Analysis analysis) {
+  public List<WritePlanNode> doSplitByPartition(Analysis analysis) {
     List<WritePlanNode> res = new ArrayList<>();
     LoadTsFileStatement statement = (LoadTsFileStatement) analysis.getStatement();
     for (TsFileResource resource : resources) {

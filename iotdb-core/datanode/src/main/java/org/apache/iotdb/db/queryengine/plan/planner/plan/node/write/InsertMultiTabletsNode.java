@@ -134,12 +134,10 @@ public class InsertMultiTabletsNode extends InsertNode {
   }
 
   @Override
-  public List<WritePlanNode> splitByPartition(Analysis analysis) {
+  public List<WritePlanNode> doSplitByPartition(Analysis analysis) {
     Map<TRegionReplicaSet, InsertMultiTabletsNode> splitMap = new HashMap<>();
     for (int i = 0; i < insertTabletNodeList.size(); i++) {
-      InsertTabletNode insertTabletNode = insertTabletNodeList.get(i);
-      List<WritePlanNode> tmpResult = insertTabletNode.splitByPartition(analysis);
-      for (WritePlanNode subNode : tmpResult) {
+      for (WritePlanNode subNode : insertTabletNodeList.get(i).splitByPartition(analysis)) {
         TRegionReplicaSet dataRegionReplicaSet = ((InsertNode) subNode).getDataRegionReplicaSet();
         InsertMultiTabletsNode tmpNode = splitMap.get(dataRegionReplicaSet);
         if (tmpNode != null) {

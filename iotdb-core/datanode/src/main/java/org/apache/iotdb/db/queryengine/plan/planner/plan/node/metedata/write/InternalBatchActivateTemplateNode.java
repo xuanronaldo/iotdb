@@ -135,7 +135,7 @@ public class InternalBatchActivateTemplateNode extends WritePlanNode {
   }
 
   @Override
-  public List<WritePlanNode> splitByPartition(Analysis analysis) {
+  public List<WritePlanNode> doSplitByPartition(Analysis analysis) {
     // gather devices to same target region
     Map<TRegionReplicaSet, Map<PartialPath, Pair<Integer, Integer>>> splitMap = new HashMap<>();
     for (Map.Entry<PartialPath, Pair<Integer, Integer>> entry : templateActivationMap.entrySet()) {

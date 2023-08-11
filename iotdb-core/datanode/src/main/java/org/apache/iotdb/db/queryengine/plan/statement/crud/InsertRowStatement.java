@@ -305,11 +305,14 @@ public class InsertRowStatement extends InsertBaseStatement implements ISchemaVa
       return this;
     }
     List<InsertRowStatement> insertRowStatementList = this.getSplitList();
+    insertRowStatementList.forEach(
+        insertRowStatement -> insertRowStatement.setIsGeneratedByPipe(isGeneratedByPipe()));
     if (insertRowStatementList.size() == 1) {
       return insertRowStatementList.get(0);
     }
     InsertRowsStatement insertRowsStatement = new InsertRowsStatement();
     insertRowsStatement.setInsertRowStatementList(insertRowStatementList);
+    insertRowsStatement.setIsGeneratedByPipe(isGeneratedByPipe());
     return insertRowsStatement;
   }
 

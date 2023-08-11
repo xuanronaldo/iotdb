@@ -114,8 +114,11 @@ public class InsertMultiTabletsStatement extends InsertBaseStatement {
     if (!needSplit) {
       return this;
     }
+    mergedList.forEach(
+        insertTabletStatement -> insertTabletStatement.setIsGeneratedByPipe(isGeneratedByPipe()));
     InsertMultiTabletsStatement splitResult = new InsertMultiTabletsStatement();
     splitResult.setInsertTabletStatementList(mergedList);
+    splitResult.setIsGeneratedByPipe(isGeneratedByPipe());
     return splitResult;
   }
 }

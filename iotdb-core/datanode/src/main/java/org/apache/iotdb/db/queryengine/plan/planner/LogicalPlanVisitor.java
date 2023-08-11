@@ -464,6 +464,7 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
             insertTabletStatement.getColumns(),
             insertTabletStatement.getRowCount());
     insertNode.setFailedMeasurementNumber(insertTabletStatement.getFailedMeasurementNumber());
+    insertNode.setIsWrittenByPipe(insertTabletStatement.isGeneratedByPipe());
     return insertNode;
   }
 
@@ -482,6 +483,7 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
             insertRowStatement.getValues(),
             insertRowStatement.isNeedInferType());
     insertNode.setFailedMeasurementNumber(insertRowStatement.getFailedMeasurementNumber());
+    insertNode.setIsWrittenByPipe(insertRowStatement.isGeneratedByPipe());
     return insertNode;
   }
 
@@ -653,8 +655,10 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
               insertRowStatement.getValues(),
               insertRowStatement.isNeedInferType());
       insertRowNode.setFailedMeasurementNumber(insertRowStatement.getFailedMeasurementNumber());
+      insertRowNode.setIsWrittenByPipe(insertRowStatement.isGeneratedByPipe());
       insertRowsNode.addOneInsertRowNode(insertRowNode, i);
     }
+    insertRowsNode.setIsWrittenByPipe(insertRowsStatement.isGeneratedByPipe());
     return insertRowsNode;
   }
 
@@ -681,8 +685,10 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
               insertTabletStatement.getRowCount());
       insertTabletNode.setFailedMeasurementNumber(
           insertTabletStatement.getFailedMeasurementNumber());
+      insertTabletNode.setIsWrittenByPipe(insertTabletStatement.isGeneratedByPipe());
       insertMultiTabletsNode.addInsertTabletNode(insertTabletNode, i);
     }
+    insertMultiTabletsNode.setIsWrittenByPipe(insertMultiTabletsStatement.isGeneratedByPipe());
     return insertMultiTabletsNode;
   }
 
@@ -710,12 +716,15 @@ public class LogicalPlanVisitor extends StatementVisitor<PlanNode, MPPQueryConte
               insertRowStatement.getValues(),
               insertRowStatement.isNeedInferType());
       insertRowNode.setFailedMeasurementNumber(insertRowStatement.getFailedMeasurementNumber());
+      insertRowNode.setIsWrittenByPipe(insertRowStatement.isGeneratedByPipe());
       insertRowNodeList.add(insertRowNode);
       insertRowNodeIndexList.add(i);
     }
 
     insertRowsOfOneDeviceNode.setInsertRowNodeList(insertRowNodeList);
     insertRowsOfOneDeviceNode.setInsertRowNodeIndexList(insertRowNodeIndexList);
+    insertRowsOfOneDeviceNode.setIsWrittenByPipe(
+        insertRowsOfOneDeviceStatement.isGeneratedByPipe());
     return insertRowsOfOneDeviceNode;
   }
 

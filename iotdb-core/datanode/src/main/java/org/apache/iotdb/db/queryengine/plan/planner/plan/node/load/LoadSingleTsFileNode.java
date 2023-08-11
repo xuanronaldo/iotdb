@@ -61,10 +61,6 @@ public class LoadSingleTsFileNode extends WritePlanNode {
 
   private TRegionReplicaSet localRegionReplicaSet;
 
-  public LoadSingleTsFileNode(PlanNodeId id) {
-    super(id);
-  }
-
   public LoadSingleTsFileNode(PlanNodeId id, TsFileResource resource, boolean deleteAfterLoad) {
     super(id);
     this.tsFile = resource.getTsFile();
@@ -192,7 +188,7 @@ public class LoadSingleTsFileNode extends WritePlanNode {
   }
 
   @Override
-  public List<WritePlanNode> splitByPartition(Analysis analysis) {
+  public List<WritePlanNode> doSplitByPartition(Analysis analysis) {
     throw new NotImplementedException("split load single TsFile is not implemented");
   }
 

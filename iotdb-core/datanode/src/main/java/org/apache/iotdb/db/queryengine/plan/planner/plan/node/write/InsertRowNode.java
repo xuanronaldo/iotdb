@@ -105,7 +105,7 @@ public class InsertRowNode extends InsertNode implements WALEntryValue {
   }
 
   @Override
-  public List<WritePlanNode> splitByPartition(Analysis analysis) {
+  public List<WritePlanNode> doSplitByPartition(Analysis analysis) {
     TTimePartitionSlot timePartitionSlot = TimePartitionUtils.getTimePartition(time);
     this.dataRegionReplicaSet =
         analysis

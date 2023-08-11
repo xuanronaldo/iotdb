@@ -25,9 +25,30 @@ import java.util.List;
 
 public abstract class WritePlanNode extends PlanNode implements IPartitionRelatedNode {
 
+  /**
+   * Whether this node is written by a pipe. If true, this node will be ignored by {@link
+   * org.apache.iotdb.db.pipe.extractor.realtime.listener.PipeInsertionDataNodeListener} to avoid
+   * cyclic transfer between different clusters.
+   */
+  private boolean isWrittenByPipe = false;
+
   protected WritePlanNode(PlanNodeId id) {
     super(id);
   }
 
-  public abstract List<WritePlanNode> splitByPartition(Analysis analysis);
+  public final List<WritePlanNode> splitByPartition(Analysis analysis) {
+    final List<WritePlanNode> nodes = doSplitByPartition(analysis);
+    nodes.forEach(node -> node.setIsWrittenByPipe(isWrittenByPipe));
+    return nodes;
+  }
+
+  protected abstract List<WritePlanNode> doSplitByPartition(Analysis analysis);
+
+  public boolean isWrittenByPipe() {
+    return isWrittenByPipe;
+  }
+
+  public void setIsWrittenByPipe(boolean isWrittenByPipe) {
+    this.isWrittenByPipe = isWrittenByPipe;
+  }
 }

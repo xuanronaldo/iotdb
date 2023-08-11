@@ -151,8 +151,11 @@ public class InsertRowsOfOneDeviceStatement extends InsertBaseStatement {
         List<InsertRowStatement> childSplitResult = child.getSplitList();
         mergedList.addAll(childSplitResult);
       }
+      mergedList.forEach(
+          insertRowStatement -> insertRowStatement.setIsGeneratedByPipe(isGeneratedByPipe()));
       InsertRowsStatement splitResult = new InsertRowsStatement();
       splitResult.setInsertRowStatementList(mergedList);
+      splitResult.setIsGeneratedByPipe(isGeneratedByPipe());
       return splitResult;
     }
     return this;

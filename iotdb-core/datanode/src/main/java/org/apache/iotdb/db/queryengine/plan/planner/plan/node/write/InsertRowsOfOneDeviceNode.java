@@ -143,7 +143,7 @@ public class InsertRowsOfOneDeviceNode extends InsertNode {
   }
 
   @Override
-  public List<WritePlanNode> splitByPartition(Analysis analysis) {
+  public List<WritePlanNode> doSplitByPartition(Analysis analysis) {
     List<WritePlanNode> result = new ArrayList<>();
 
     Map<TRegionReplicaSet, List<InsertRowNode>> splitMap = new HashMap<>();

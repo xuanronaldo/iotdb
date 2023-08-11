@@ -2042,6 +2042,7 @@ public class AnalyzeVisitor extends StatementVisitor<Analysis, MPPQueryContext> 
       insertRowStatement.setValues(values);
       insertRowStatement.setNeedInferType(true);
       insertRowStatement.setAligned(insertStatement.isAligned());
+      insertRowStatement.setIsGeneratedByPipe(insertStatement.isGeneratedByPipe());
       return insertRowStatement.accept(this, context);
     } else {
       // construct insert rows statement
@@ -2063,9 +2064,11 @@ public class AnalyzeVisitor extends StatementVisitor<Analysis, MPPQueryContext> 
         statement.setValues(values);
         statement.setAligned(insertStatement.isAligned());
         statement.setNeedInferType(true);
+        statement.setIsGeneratedByPipe(insertStatement.isGeneratedByPipe());
         insertRowStatementList.add(statement);
       }
       insertRowsOfOneDeviceStatement.setInsertRowStatementList(insertRowStatementList);
+      insertRowsOfOneDeviceStatement.setIsGeneratedByPipe(insertStatement.isGeneratedByPipe());
       return insertRowsOfOneDeviceStatement.accept(this, context);
     }
   }

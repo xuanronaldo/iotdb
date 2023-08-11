@@ -137,7 +137,7 @@ public class InternalCreateMultiTimeSeriesNode extends WritePlanNode {
   }
 
   @Override
-  public List<WritePlanNode> splitByPartition(Analysis analysis) {
+  public List<WritePlanNode> doSplitByPartition(Analysis analysis) {
     // gather devices to same target region
     Map<TRegionReplicaSet, Map<PartialPath, Pair<Boolean, MeasurementGroup>>> splitMap =
         new HashMap<>();

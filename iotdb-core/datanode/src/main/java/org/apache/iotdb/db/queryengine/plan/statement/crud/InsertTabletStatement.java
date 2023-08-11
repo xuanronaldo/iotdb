@@ -256,11 +256,14 @@ public class InsertTabletStatement extends InsertBaseStatement implements ISchem
       return this;
     }
     List<InsertTabletStatement> insertTabletStatementList = this.getSplitList();
+    insertTabletStatementList.forEach(
+        insertTabletStatement -> insertTabletStatement.setIsGeneratedByPipe(isGeneratedByPipe()));
     if (insertTabletStatementList.size() == 1) {
       return insertTabletStatementList.get(0);
     }
     InsertMultiTabletsStatement insertMultiTabletsStatement = new InsertMultiTabletsStatement();
     insertMultiTabletsStatement.setInsertTabletStatementList(insertTabletStatementList);
+    insertMultiTabletsStatement.setIsGeneratedByPipe(isGeneratedByPipe());
     return insertMultiTabletsStatement;
   }
 

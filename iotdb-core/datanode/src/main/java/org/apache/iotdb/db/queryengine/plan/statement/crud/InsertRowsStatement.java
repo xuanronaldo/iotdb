@@ -149,8 +149,11 @@ public class InsertRowsStatement extends InsertBaseStatement {
     if (!needSplit) {
       return this;
     }
+    mergedList.forEach(
+        insertRowStatement -> insertRowStatement.setIsGeneratedByPipe(isGeneratedByPipe()));
     InsertRowsStatement splitResult = new InsertRowsStatement();
     splitResult.setInsertRowStatementList(mergedList);
+    splitResult.setIsGeneratedByPipe(isGeneratedByPipe());
     return splitResult;
   }
 }
