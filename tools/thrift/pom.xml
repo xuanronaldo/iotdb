@@ -42,7 +42,7 @@
                             <goal>wget</goal>
                         </goals>
                         <configuration>
-                            <url>https://gitbox.apache.org/repos/asf?p=iotdb-bin-resources.git;a=blob_plain;f=compile-tools/thrift-0.14-ubuntu;hb=HEAD</url>
+                            <url>https://github.com/apache/iotdb-bin-resources/raw/main/compile-tools/thrift-0.14-ubuntu</url>
                             <outputDirectory>${project.build.directory}/tools</outputDirectory>
                             <outputFileName>thrift</outputFileName>
                         </configuration>
