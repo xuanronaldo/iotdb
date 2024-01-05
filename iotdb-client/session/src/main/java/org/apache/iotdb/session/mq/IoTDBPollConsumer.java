@@ -62,6 +62,9 @@ public class IoTDBPollConsumer {
 
   private final String id;
 
+  private final String startTime;
+  private final String endTime;
+
   private final String pipeName;
 
   public IoTDBPollConsumer(Builder builder) throws IoTDBConnectionException {
@@ -72,6 +75,8 @@ public class IoTDBPollConsumer {
     String pw = builder.pw;
     int tabletBufferSize = builder.tabletBufferSize;
     pattern = builder.pattern;
+    startTime = builder.startTime;
+    endTime = builder.endTime;
 
     if ("".equals(builder.id)) {
       throw new IoTDBConnectionException("The option `id` is required.");
@@ -143,25 +148,34 @@ public class IoTDBPollConsumer {
     return newTabletWrapper.getTablet();
   }
 
+  private StringBuilder constructCreatePipeStatement() {
+    StringBuilder statementBuilder = new StringBuilder();
+    statementBuilder.append(String.format("create pipe %s\n", pipeName));
+    statementBuilder.append("with extractor (\n");
+    statementBuilder.append(String.format("    'extractor.pattern'='%s',\n", pattern));
+    if (!"".equals(startTime)) {
+      statementBuilder.append(
+          String.format("    'extractor.history.start-time'='%s',\n", startTime));
+    }
+    if (!"".equals(endTime)) {
+      statementBuilder.append(String.format("    'extractor.history.end-time'='%s',\n", endTime));
+    }
+    statementBuilder.append(") with connector (\n");
+    statementBuilder.append("    'connector'='websocket-connector',\n");
+    statementBuilder.append("    'connector.websocket.port'='18080',\n");
+    statementBuilder.append("    'connector.websocket.id'='%s'\n");
+    statementBuilder.append(")");
+    return statementBuilder;
+  }
+
   private void createAndStartPipeIfNecessary()
       throws IoTDBConnectionException, StatementExecutionException {
     try (SessionDataSet pipes =
         session.executeQueryStatement(String.format("show pipe %s", pipeName))) {
       // create pipe if necessary
       if (!pipes.hasNext()) {
-        String createStatement =
-            String.format(
-                "create pipe %s\n"
-                    + "with extractor (\n"
-                    + "    'extractor.pattern'='%s'\n"
-                    + ")\n"
-                    + "with connector (\n"
-                    + "    'connector'='websocket-connector',\n"
-                    + "    'connector.websocket.port'='18080',\n"
-                    + "    'connector.websocket.id'='%s'\n"
-                    + ")",
-                pipeName, pattern, id);
-        session.executeNonQueryStatement(createStatement);
+        String createPipeStatement = constructCreatePipeStatement().toString();
+        session.executeNonQueryStatement(createPipeStatement);
         session.executeNonQueryStatement(String.format("start pipe %s", pipeName));
       } else {
         // start pipe if necessary
@@ -261,6 +275,42 @@ public class IoTDBPollConsumer {
     return client;
   }
 
+  // To keep clients and session alive.
+  private class ClientsDaemonThread extends Thread {
+
+    @Override
+    public void run() {
+      while (true) {
+        for (IoTDBWebSocketClient client : clients) {
+          try {
+            if (client.getReadyState().equals(ReadyState.OPEN)) {
+              continue;
+            }
+            while (!isURIAvailable(client.getURI())) {
+              String log =
+                  String.format(
+                      "The websocket server %s:%d is not available now, sleep 5 seconds.",
+                      client.getURI().getHost(), client.getURI().getPort());
+              LOGGER.warn(log);
+              Thread.sleep(5000);
+            }
+            client.reconnect();
+            while (!client.getReadyState().equals(ReadyState.OPEN)) {
+              Thread.sleep(1000);
+            }
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          }
+        }
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+  }
+
   public static class Builder {
     private String host = SessionConfig.DEFAULT_HOST;
     private int rpcPort = SessionConfig.DEFAULT_PORT;
@@ -269,6 +319,8 @@ public class IoTDBPollConsumer {
     private String pw = SessionConfig.DEFAULT_PASSWORD;
     private int tabletBufferSize = SessionConfig.DEFAULT_TABLET_BUFFER_SIZE;
     private String pattern = SessionConfig.DEFAULT_PATTERN;
+    private String startTime = SessionConfig.DEFAULT_START_TIME;
+    private String endTime = SessionConfig.DEFAULT_END_TIME;
     private String id = "";
 
     public Builder host(String host) {
@@ -311,44 +363,18 @@ public class IoTDBPollConsumer {
       return this;
     }
 
+    public Builder startTime(String startTime) {
+      this.startTime = startTime;
+      return this;
+    }
+
+    public Builder endTime(String endTime) {
+      this.endTime = endTime;
+      return this;
+    }
+
     public IoTDBPollConsumer build() throws IoTDBConnectionException {
       return new IoTDBPollConsumer(this);
-    }
-  }
-
-  // To keep clients and session alive.
-  private class ClientsDaemonThread extends Thread {
-
-    @Override
-    public void run() {
-      while (true) {
-        for (IoTDBWebSocketClient client : clients) {
-          try {
-            if (client.getReadyState().equals(ReadyState.OPEN)) {
-              continue;
-            }
-            while (!isURIAvailable(client.getURI())) {
-              String log =
-                  String.format(
-                      "The websocket server %s:%d is not available now, sleep 5 seconds.",
-                      client.getURI().getHost(), client.getURI().getPort());
-              LOGGER.warn(log);
-              Thread.sleep(5000);
-            }
-            client.reconnect();
-            while (!client.getReadyState().equals(ReadyState.OPEN)) {
-              Thread.sleep(1000);
-            }
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-          }
-        }
-        try {
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        }
-      }
     }
   }
 }

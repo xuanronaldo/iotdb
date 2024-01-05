@@ -52,6 +52,8 @@ public class SessionConfig {
   public static final int DEFAULT_BROKER_PORT = 18080;
   public static final int DEFAULT_TABLET_BUFFER_SIZE = 10;
   public static final String DEFAULT_PATTERN = "root";
+  public static final String DEFAULT_START_TIME = "";
+  public static final String DEFAULT_END_TIME = "";
 
   public static final boolean DEFAULT_ENABLE_AUTO_FETCH = true;
 
