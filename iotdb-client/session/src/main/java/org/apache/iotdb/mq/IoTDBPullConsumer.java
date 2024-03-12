@@ -48,24 +48,6 @@ public class IoTDBPullConsumer extends IoTDBAbstractConsumer {
     this.topics = new ArrayList<>();
   }
 
-  @Override
-  public void subscribe(String topic) {}
-
-  @Override
-  public void subscribe(List<String> topics) {}
-
-  @Override
-  public void unsubscribe(String topic) {}
-
-  @Override
-  public void unsubscribe(List<String> topics) {}
-
-  @Override
-  public void unsubscribeAll() {}
-
-  @Override
-  public void close() {}
-
   public static class Builder {
     private String host = IoTDBMQConstant.DEFAULT_HOST;
     private int port = IoTDBMQConstant.DEFAULT_PORT;
