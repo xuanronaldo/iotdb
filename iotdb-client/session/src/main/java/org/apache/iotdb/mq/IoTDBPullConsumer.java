@@ -23,7 +23,6 @@ import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.session.Session;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 public class IoTDBPullConsumer extends IoTDBAbstractConsumer {
