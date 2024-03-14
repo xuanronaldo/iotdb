@@ -26,4 +26,8 @@ public class IoTDBMQConstant {
   public static int DEFAULT_PORT = 6667;
   public static String DEFAULT_USERNAME = "root";
   public static String DEFAULT_PASSWORD = "root";
+
+  public static final int DEFAULT_BUFFER_SIZE = 1024;
+  public static final int DEFAULT_MAX_FRAME_SIZE = 67108864;
+  public static final int DEFAULT_CONNECTION_TIMEOUT_MS = 0;
 }
