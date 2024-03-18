@@ -40,6 +40,7 @@ import org.apache.iotdb.commons.consensus.index.ProgressIndex;
 import org.apache.iotdb.commons.consensus.index.ProgressIndexType;
 import org.apache.iotdb.commons.exception.IllegalPathException;
 import org.apache.iotdb.commons.exception.MetadataException;
+import org.apache.iotdb.commons.exception.SubscriptionException;
 import org.apache.iotdb.commons.path.PartialPath;
 import org.apache.iotdb.commons.path.PathDeserializeUtil;
 import org.apache.iotdb.commons.path.PathPatternTree;
@@ -49,6 +50,7 @@ import org.apache.iotdb.commons.schema.SchemaConstant;
 import org.apache.iotdb.commons.schema.view.viewExpression.ViewExpression;
 import org.apache.iotdb.commons.service.metric.MetricService;
 import org.apache.iotdb.commons.service.metric.enums.Tag;
+import org.apache.iotdb.commons.subscription.meta.topic.TopicMeta;
 import org.apache.iotdb.commons.trigger.TriggerInformation;
 import org.apache.iotdb.commons.udf.UDFInformation;
 import org.apache.iotdb.commons.udf.service.UDFManagementService;
@@ -129,6 +131,7 @@ import org.apache.iotdb.db.storageengine.dataregion.compaction.schedule.Compacti
 import org.apache.iotdb.db.storageengine.dataregion.compaction.settle.SettleRequestHandler;
 import org.apache.iotdb.db.storageengine.rescon.quotas.DataNodeSpaceQuotaManager;
 import org.apache.iotdb.db.storageengine.rescon.quotas.DataNodeThrottleQuotaManager;
+import org.apache.iotdb.db.subscription.agent.SubscriptionAgent;
 import org.apache.iotdb.db.trigger.executor.TriggerExecutor;
 import org.apache.iotdb.db.trigger.executor.TriggerFireResult;
 import org.apache.iotdb.db.trigger.service.TriggerManagementService;
@@ -185,10 +188,15 @@ import org.apache.iotdb.mpp.rpc.thrift.TLoadSample;
 import org.apache.iotdb.mpp.rpc.thrift.TMaintainPeerReq;
 import org.apache.iotdb.mpp.rpc.thrift.TPipeHeartbeatReq;
 import org.apache.iotdb.mpp.rpc.thrift.TPipeHeartbeatResp;
+import org.apache.iotdb.mpp.rpc.thrift.TPushConsumerGroupMetaResp;
 import org.apache.iotdb.mpp.rpc.thrift.TPushPipeMetaReq;
 import org.apache.iotdb.mpp.rpc.thrift.TPushPipeMetaResp;
 import org.apache.iotdb.mpp.rpc.thrift.TPushPipeMetaRespExceptionMessage;
+import org.apache.iotdb.mpp.rpc.thrift.TPushSingleConsumerGroupMetaReq;
 import org.apache.iotdb.mpp.rpc.thrift.TPushSinglePipeMetaReq;
+import org.apache.iotdb.mpp.rpc.thrift.TPushSingleTopicMetaReq;
+import org.apache.iotdb.mpp.rpc.thrift.TPushTopicMetaResp;
+import org.apache.iotdb.mpp.rpc.thrift.TPushTopicRespExceptionMessage;
 import org.apache.iotdb.mpp.rpc.thrift.TRegionLeaderChangeReq;
 import org.apache.iotdb.mpp.rpc.thrift.TRegionRouteReq;
 import org.apache.iotdb.mpp.rpc.thrift.TRollbackSchemaBlackListReq;
@@ -1025,6 +1033,41 @@ public class DataNodeInternalRPCServiceImpl implements IDataNodeRPCService.Iface
   }
 
   @Override
+  public TPushTopicMetaResp pushSingleTopicMeta(TPushSingleTopicMetaReq req) {
+    try {
+      final TPushTopicRespExceptionMessage exceptionMessage;
+      if (req.isSetTopicNameToDrop()) {
+        exceptionMessage = SubscriptionAgent.topic().handleDropTopic(req.getTopicNameToDrop());
+      } else if (req.isSetTopicMeta()) {
+        exceptionMessage =
+            SubscriptionAgent.topic()
+                .handleSingleTopicMetaChanges(
+                    TopicMeta.deserialize(ByteBuffer.wrap(req.getTopicMeta())));
+      } else {
+        throw new SubscriptionException("Invalid request " + req + " from config node.");
+      }
+
+      return exceptionMessage == null
+          ? new TPushTopicMetaResp()
+              .setStatus(new TSStatus(TSStatusCode.SUCCESS_STATUS.getStatusCode()))
+          : new TPushTopicMetaResp()
+              .setStatus(new TSStatus(TSStatusCode.TOPIC_PUSH_META_ERROR.getStatusCode()))
+              .setExceptionMessages(Collections.singletonList(exceptionMessage));
+    } catch (Exception e) {
+      LOGGER.warn("Error occurred when pushing single topic meta", e);
+      return new TPushTopicMetaResp()
+          .setStatus(new TSStatus(TSStatusCode.TOPIC_PUSH_META_ERROR.getStatusCode()));
+    }
+  }
+
+  @Override
+  public TPushConsumerGroupMetaResp pushSingleConsumerGroupMeta(
+      TPushSingleConsumerGroupMetaReq req) {
+    // TODO
+    return null;
+  }
+
+  @Override
   public TPipeHeartbeatResp pipeHeartbeat(TPipeHeartbeatReq req) throws TException {
     final TPipeHeartbeatResp resp = new TPipeHeartbeatResp();
     PipeAgent.task().collectPipeMetaList(req, resp);
@@ -1099,7 +1142,7 @@ public class DataNodeInternalRPCServiceImpl implements IDataNodeRPCService.Iface
           SESSION_MANAGER.requestQueryId(session, SESSION_MANAGER.requestStatementId(session));
       // Create and cache dataset
       ExecutionResult result =
-          COORDINATOR.execute(
+          COORDINATOR.executeForTreeModel(
               s,
               queryId,
               SESSION_MANAGER.getSessionInfo(session),
