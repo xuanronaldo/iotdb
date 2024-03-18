@@ -29,7 +29,7 @@ import java.util.Objects;
 
 public class PipeSubscribeHandshakeReq extends TPipeSubscribeReq {
 
-  private transient ConsumerConfig consumerConfig = new ConsumerConfig();
+  private transient ConsumerConfig consumerConfig;
 
   public ConsumerConfig getConsumerConfig() {
     return consumerConfig;

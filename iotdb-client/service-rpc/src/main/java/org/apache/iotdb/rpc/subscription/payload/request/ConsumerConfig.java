@@ -30,6 +30,8 @@ public class ConsumerConfig {
 
   private transient String consumerGroupID;
   private transient String consumerClientID;
+  private transient String username;
+  private transient String password;
 
   // TODO: more configs
 
@@ -39,6 +41,14 @@ public class ConsumerConfig {
 
   public String getConsumerGroupID() {
     return consumerGroupID;
+  }
+
+  public String getUsername() {
+    return username;
+  }
+
+  public String getPassword() {
+    return password;
   }
 
   public void serialize(DataOutputStream stream) throws IOException {
